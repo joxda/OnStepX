@@ -5,6 +5,8 @@
 
 #ifdef STEP_DIR_MOTOR_PRESENT
 
+#include "../../../gpioEx/GpioEx.h"
+
 // the various microsteps for different driver models, with the bit modes for each
 #define DRIVER_MODEL_COUNT 19
 
@@ -88,7 +90,87 @@ const static int16_t DriverPulseWidth[DRIVER_MODEL_COUNT] =
 #endif
 
 // set up driver and parameters: microsteps, microsteps goto, hold current, run current, goto current, unused
-void StepDirDriver::init(float param1, float param2, float param3, float param4, float param5, float param6) {
+bool StepDirDriver::setParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
+
+  // get the maximum current and Rsense for this axis
+  user_rSense = 0;
+  user_currentMax = 0;
+  switch (axisNumber) {
+    case 1:
+      #ifdef AXIS1_DRIVER_RSENSE
+        user_rSense = AXIS1_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS1_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS1_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 2:
+      #ifdef AXIS2_DRIVER_RSENSE
+        user_rSense = AXIS2_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS2_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS2_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 3:
+      #ifdef AXIS3_DRIVER_RSENSE
+        user_rSense = AXIS3_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS3_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS3_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 4:
+      #ifdef AXIS4_DRIVER_RSENSE
+        user_rSense = AXIS4_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS4_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS4_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 5:
+      #ifdef AXIS5_DRIVER_RSENSE
+        user_rSense = AXIS5_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS5_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS5_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 6:
+      #ifdef AXIS6_DRIVER_RSENSE
+        user_rSense = AXIS6_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS6_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS6_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 7:
+      #ifdef AXIS7_DRIVER_RSENSE
+        user_rSense = AXIS7_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS7_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS7_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 8:
+      #ifdef AXIS8_DRIVER_RSENSE
+        user_rSense = AXIS8_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS8_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS8_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+    case 9:
+      #ifdef AXIS9_DRIVER_RSENSE
+        user_rSense = AXIS9_DRIVER_RSENSE;
+      #endif
+      #ifdef AXIS9_DRIVER_CURRENT_MAX
+        user_currentMax = AXIS9_DRIVER_CURRENT_MAX;
+      #endif
+    break;
+  }
+
+  // remember the settings
   settings.microsteps = round(param1);
   settings.microstepsSlewing = round(param2);
   settings.currentHold = round(param3);
@@ -108,6 +190,8 @@ void StepDirDriver::init(float param1, float param2, float param3, float param4,
   microstepCode = subdivisionsToCode(settings.microsteps);
   microstepCodeSlewing = subdivisionsToCode(settings.microstepsSlewing);
   microstepRatio = settings.microsteps/settings.microstepsSlewing;
+
+  return true;
 }
 
 // validate driver parameters
@@ -183,6 +267,23 @@ int StepDirDriver::subdivisionsToCode(long microsteps) {
 
 // update status info. for driver
 void StepDirDriver::updateStatus() {
+  if (settings.status == ON) {
+    if ((long)(millis() - timeLastStatusUpdate) > 200) {
+      readStatus();
+
+      // open load indication is not reliable in standstill
+      if (status.outputA.shortToGround ||
+          status.outputB.shortToGround ||
+          status.overTemperatureWarning ||
+          status.overTemperature) status.fault = true; else status.fault = false;
+
+      timeLastStatusUpdate = millis();
+    }
+  } else
+  if (settings.status == LOW || settings.status == HIGH) {
+    status.fault = digitalReadEx(Pins->fault) == settings.status;
+  }
+
   #if DEBUG == VERBOSE
     if ((status.outputA.shortToGround     != lastStatus.outputA.shortToGround) ||
 //      (status.outputA.openLoad          != lastStatus.outputA.openLoad) ||

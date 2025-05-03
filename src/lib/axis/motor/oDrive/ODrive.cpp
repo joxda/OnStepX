@@ -89,28 +89,22 @@ bool ODriveMotor::init() {
     return false;
   }
 
+  ready = true;
   return true;
 }
 
-// set driver reverse state
-void ODriveMotor::setReverse(int8_t state) {
-  if (state == ON) {
-    VF(axisPrefix); VLF("axis reversal must be accomplished with hardware or ODrive setup!");
-  }
-}
-
-// set driver parameters
-void ODriveMotor::setParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
+// set motor parameters
+bool ODriveMotor::setParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
   UNUSED(param1); // general purpose settings defined in Extended.config.h and stored in NV, they can be modified at runtime
   UNUSED(param2);
   UNUSED(param3);
   UNUSED(param4);
   UNUSED(param5);
   stepsPerMeasure = param6;
-  setSlewing(isSlewing);
+  return true;
 }
 
-// validate driver parameters
+// validate motor parameters
 bool ODriveMotor::validateParameters(float param1, float param2, float param3, float param4, float param5, float param6) {
   UNUSED(param1);
   UNUSED(param2);
@@ -121,10 +115,21 @@ bool ODriveMotor::validateParameters(float param1, float param2, float param3, f
   return true;
 }
 
+// set motor reverse state
+void ODriveMotor::setReverse(int8_t state) {
+  if (!ready) return;
+
+  if (state == ON) {
+    VF(axisPrefix); VLF("axis reversal must be accomplished with hardware or ODrive setup!");
+  }
+}
+
 // sets motor enable on/off (if possible)
 void ODriveMotor::enable(bool state) {
-  V(axisPrefix); VF("driver powered "); if (state) { VLF("up"); } else { VLF("down"); } 
-  
+  if (!ready) return;
+
+  V(axisPrefix); VF("driver powered "); if (state) { VLF("up"); } else { VLF("down"); }
+
   int requestedState = AXIS_STATE_IDLE;
   if (state) requestedState = AXIS_STATE_CLOSED_LOOP_CONTROL;
   
@@ -147,6 +152,8 @@ void ODriveMotor::enable(bool state) {
 }
 
 void ODriveMotor::setInstrumentCoordinateSteps(long value) {
+  if (!ready) return;
+
   #if ODRIVE_ABSOLUTE == ON && ODRIVE_SYNC_LIMIT != OFF
     noInterrupts();
     long index = value - motorSteps;
@@ -157,13 +164,10 @@ void ODriveMotor::setInstrumentCoordinateSteps(long value) {
   Motor::setInstrumentCoordinateSteps(value);
 }
 
-// get the associated driver status
-DriverStatus ODriveMotor::getDriverStatus() {
-  return status;
-}
-
 // resets motor and target angular position in steps, also zeros backlash and index
 void ODriveMotor::resetPositionSteps(long value) {
+  if (!ready) return;
+
   // this is where the initial odrive position in "steps" is brought into agreement with the motor position in steps
   // not sure on this... but code below ignores (value,) gets the odrive position convert to steps and resets the motor
   // there (as the odrive encoders are absolute.)
@@ -196,6 +200,8 @@ void ODriveMotor::resetPositionSteps(long value) {
 
 // set frequency (+/-) in steps per second negative frequencies move reverse in direction (0 stops motion)
 void ODriveMotor::setFrequencySteps(float frequency) {
+  if (!ready) return;
+
   // negative frequency, convert to positive and reverse the direction
   int dir = 0;
   if (frequency > 0.0F) dir = 1; else if (frequency < 0.0F) { frequency = -frequency; dir = -1; }
@@ -240,12 +246,16 @@ void ODriveMotor::setFrequencySteps(float frequency) {
 }
 
 float ODriveMotor::getFrequencySteps() {
-  if (lastPeriod == 0) return 0;
+  if (!ready) return 0.0F;
+
+  if (lastPeriod == 0) return 0.0F;
   return (16000000.0F / lastPeriod) * absStep;
 }
 
 // set slewing state (hint that we are about to slew or are done slewing)
 void ODriveMotor::setSlewing(bool state) {
+  if (!ready) return;
+
   isSlewing = state;
 }
 

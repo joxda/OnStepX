@@ -19,9 +19,6 @@ class Motor {
     // sets up the motor identification
     virtual bool init();
 
-    // set motor reverse state
-    virtual void setReverse(int8_t state);
-
     // get motor parameters type code
     virtual char getParameterTypeCode();
 
@@ -32,10 +29,13 @@ class Motor {
     void setDefaultParameters(float param1, float param2, float param3, float param4, float param5, float param6);
 
     // set motor parameters
-    virtual void setParameters(float param1, float param2, float param3, float param4, float param5, float param6);
+    virtual bool setParameters(float param1, float param2, float param3, float param4, float param5, float param6);
 
     // validate motor parameters
     virtual bool validateParameters(float param1, float param2, float param3, float param4, float param5, float param6);
+
+    // set motor reverse state
+    virtual void setReverse(int8_t state);
 
     // sets motor enable on/off (if possible)
     virtual void enable(bool value);
@@ -149,6 +149,8 @@ class Motor {
 
     bool enabled = false;                      // enable/disable logical state
 
+    bool ready = false;                        // set to true after successful init
+
     bool calibrating = false;                  // shadow disable when calibrating
 
   protected:
@@ -182,6 +184,9 @@ class Motor {
     volatile long step = 1;                    // step size, and for direction control
 
     float default_param1 = 0, default_param2 = 0, default_param3 = 0, default_param4 = 0, default_param5 = 0, default_param6 = 0;
+
+    // a fault return status
+    const DriverStatus errorStatus = {false, {false, false}, {false, false}, false, false, false, true};
 };
 
 #endif
