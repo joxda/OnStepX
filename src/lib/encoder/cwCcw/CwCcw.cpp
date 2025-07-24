@@ -6,51 +6,51 @@
     AXIS4_ENCODER == CW_CCW || AXIS5_ENCODER == CW_CCW || AXIS6_ENCODER == CW_CCW || \
     AXIS7_ENCODER == CW_CCW || AXIS8_ENCODER == CW_CCW || AXIS9_ENCODER == CW_CCW
 
-volatile int32_t _cw_ccw_count[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+CwCcw *cwCcwInstance[9];
 
 #if AXIS1_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis1() { _cw_ccw_count[0]++; }
-  IRAM_ATTR void cwCcw_B_Axis1() { _cw_ccw_count[0]--; }
+  IRAM_ATTR void cwCcw_A_Axis1() { cwCcwInstance[0]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis1() { cwCcwInstance[0]->ccw(); }
 #endif
 
 #if AXIS2_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis2() { _cw_ccw_count[1]++; }
-  IRAM_ATTR void cwCcw_B_Axis2() { _cw_ccw_count[1]--; }
+  IRAM_ATTR void cwCcw_A_Axis2() { cwCcwInstance[1]->cw();}
+  IRAM_ATTR void cwCcw_B_Axis2() { cwCcwInstance[1]->ccw(); }
 #endif
 
 #if AXIS3_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis3() { _cw_ccw_count[2]++; }
-  IRAM_ATTR void cwCcw_B_Axis3() { _cw_ccw_count[2]--;}
+  IRAM_ATTR void cwCcw_A_Axis3() { cwCcwInstance[2]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis3() { cwCcwInstance[2]->ccw(); }
 #endif
 
 #if AXIS4_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis4() { _cw_ccw_count[3]++; }
-  IRAM_ATTR void cwCcw_B_Axis4() { _cw_ccw_count[3]--; }
+  IRAM_ATTR void cwCcw_A_Axis4() { cwCcwInstance[3]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis4() { cwCcwInstance[3]->ccw(); }
 #endif
 
 #if AXIS5_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis5() { _cw_ccw_count[4]++; }
-  IRAM_ATTR void cwCcw_B_Axis5() { _cw_ccw_count[4]--; }
+  IRAM_ATTR void cwCcw_A_Axis5() { cwCcwInstance[4]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis5() { cwCcwInstance[4]->ccw(); }
 #endif
 
 #if AXIS6_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis6() { _cw_ccw_count[5]++; }
-  IRAM_ATTR void cwCcw_B_Axis6() { _cw_ccw_count[5]--; }
+  IRAM_ATTR void cwCcw_A_Axis6() { cwCcwInstance[5]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis6() { cwCcwInstance[5]->ccw(); }
 #endif
 
 #if AXIS7_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis7() { _cw_ccw_count[6]++; }
-  IRAM_ATTR void cwCcw_B_Axis7() { _cw_ccw_count[6]--; }
+  IRAM_ATTR void cwCcw_A_Axis7() { cwCcwInstance[6]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis7() { cwCcwInstance[6]->ccw(); }
 #endif
 
 #if AXIS8_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis8() { _cw_ccw_count[7]++; }
-  IRAM_ATTR void cwCcw_B_Axis8() { _cw_ccw_count[7]--; }
+  IRAM_ATTR void cwCcw_A_Axis8() { cwCcwInstance[7]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis8() { cwCcwInstance[7]->ccw(); }
 #endif
 
 #if AXIS9_ENCODER == CW_CCW
-  IRAM_ATTR void cwCcw_A_Axis9() { _cw_ccw_count[8]++; }
-  IRAM_ATTR void cwCcw_B_Axis9() { _cw_ccw_count[8]--; }
+  IRAM_ATTR void cwCcw_A_Axis9() { cwCcwInstance[8]->cw(); }
+  IRAM_ATTR void cwCcw_B_Axis9() { cwCcwInstance[8]->ccw(); }
 #endif
 
 CwCcw::CwCcw(int16_t cwPin, int16_t ccwPin, int16_t axis) {
@@ -61,6 +61,8 @@ CwCcw::CwCcw(int16_t cwPin, int16_t ccwPin, int16_t axis) {
 
   CwPin = cwPin;
   CcwPin = ccwPin;
+
+  cwCcwInstance[axis_index] = this;
 }
 
 bool CwCcw::init() {
@@ -80,56 +82,56 @@ bool CwCcw::init() {
   switch (axis) {
     #if AXIS1_ENCODER == CW_CCW
       case 1:
-        attachInterrupt(cwPin, cwCcw_A_Axis1, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis1, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis1, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis1, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS2_ENCODER == CW_CCW
       case 2:
-        attachInterrupt(cwPin, cwCcw_A_Axis2, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis2, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis2, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis2, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS3_ENCODER == CW_CCW
       case 3:
-        attachInterrupt(cwPin, cwCcw_A_Axis3, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis3, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis3, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis3, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS4_ENCODER == CW_CCW
       case 4:
-        attachInterrupt(cwPin, cwCcw_A_Axis4, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis4, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis4, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis4, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS5_ENCODER == CW_CCW
       case 5:
-        attachInterrupt(cwPin, cwCcw_A_Axis5, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis5, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis5, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis5, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS6_ENCODER == CW_CCW
       case 6:
-        attachInterrupt(cwPin, cwCcw_A_Axis6, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis6, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis6, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis6, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS7_ENCODER == CW_CCW
       case 7:
-        attachInterrupt(cwPin, cwCcw_A_Axis7, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis7, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis7, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis7, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS8_ENCODER == CW_CCW
       case 8:
-        attachInterrupt(cwPin, cwCcw_A_Axis8, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis8, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis8, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis8, ENCODER_SIGNAL_MODE);
       break;
     #endif
     #if AXIS9_ENCODER == CW_CCW
       case 9:
-        attachInterrupt(cwPin, cwCcw_A_Axis9, CHANGE);
-        attachInterrupt(ccwPin, cwCcw_B_Axis9, CHANGE);
+        attachInterrupt(cwPin, cwCcw_A_Axis9, ENCODER_SIGNAL_MODE);
+        attachInterrupt(ccwPin, cwCcw_B_Axis9, ENCODER_SIGNAL_MODE);
       break;
     #endif
   }
@@ -142,7 +144,7 @@ int32_t CwCcw::read() {
   if (!ready) return 0;
   
   noInterrupts();
-  count = _cw_ccw_count[axis_index];
+  count = cwCcwCount;
   interrupts();
 
   return count + index;
@@ -152,8 +154,22 @@ void CwCcw::write(int32_t position) {
   if (!ready) return;
 
   noInterrupts();
-  index = position - _cw_ccw_count[axis_index];
+  index = position - cwCcwCount;
   interrupts();
+}
+
+IRAM_ATTR void CwCcw::cw() {
+  #if ENCODER_FILTER > 0
+    ENCODER_FILTER_UNTIL(ENCODER_FILTER);
+  #endif
+  cwCcwCount++;
+}
+
+IRAM_ATTR void CwCcw::ccw() {
+  #if ENCODER_FILTER > 0
+    ENCODER_FILTER_UNTIL(ENCODER_FILTER);
+  #endif
+  cwCcwCount--;
 }
 
 #endif

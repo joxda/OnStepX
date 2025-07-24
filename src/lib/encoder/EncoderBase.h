@@ -56,6 +56,36 @@
   #define HAS_BISS_C
 #endif
 
+// OFF is disabled, ON disregards unexpected quadrature encoder signals, or 
+// a value > 0 (nanoseconds) disregards repeat signal events for that timer period  
+#ifndef ENCODER_FILTER
+  #define ENCODER_FILTER OFF
+#endif
+
+// these should allow time for an encoder signal to stabalize
+#if ENCODER_FILTER > 0
+  // once a signal state changes don't allow the ISR to run again for ENCODER_FILTER nanoseconds
+  // it would be even better to create a low-res millis counter outside of this routine and just access the variable here
+  #define ENCODER_FILTER_UNTIL(n) \
+    static uint32_t nsNext = 0;  \
+    static uint32_t nsInvalidMillis = 0; \
+    uint32_t nsNow = nanoseconds(); \
+    uint32_t msNow = millis(); \
+    if ((long)(msNow - nsInvalidMillis) < 0 && (long)(nsNow - nsNext) < 0) return; \
+    nsNext = nsNow + n; \
+    nsInvalidMillis = msNow + 1000;
+
+  // or, a less optimal alternative when a reasonably functional delayNanoseconds() is available...
+  // once a signal state changes wait in the ISR for ENCODER_FILTER nanoseconds to let the signal stabalize
+  // #define ENCODER_FILTER_UNTIL(n) delayNanoseconds(n);
+#endif
+
+// signal mode for pulse and cw/ccw encoders, default CHANGE or RISING or FALLING
+// quadrature encoders
+#ifndef ENCODER_SIGNAL_MODE
+  #define ENCODER_SIGNAL_MODE CHANGE
+#endif
+
 #if AXIS1_ENCODER != OFF || AXIS2_ENCODER != OFF || AXIS3_ENCODER != OFF || \
     AXIS4_ENCODER != OFF || AXIS5_ENCODER != OFF || AXIS6_ENCODER != OFF || \
     AXIS7_ENCODER != OFF || AXIS8_ENCODER != OFF || AXIS9_ENCODER != OFF
@@ -105,6 +135,7 @@ class Encoder {
     uint32_t origin = 0;
 
   protected:
+    // axis number from 1 to 9
     int16_t axis = 0;
 
     // accumulator for warning detection
