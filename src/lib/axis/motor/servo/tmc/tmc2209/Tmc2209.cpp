@@ -30,7 +30,7 @@ ServoTmc2209::ServoTmc2209(uint8_t axisNumber, const ServoPins *Pins, const Serv
   axisPrefix[5] = '0' + axisNumber;
 
   this->velocityThrs = velocityThrs;
-  this->countsToStepsRatio.defaultValue = countsToStepsRatio;
+  this->countsToStepsRatio.valueDefault = countsToStepsRatio;
 }
 
 bool ServoTmc2209::init(bool reverse) {
@@ -89,7 +89,7 @@ bool ServoTmc2209::init(bool reverse) {
   driver->begin();
   driver->intpol(true);
 
-  if (normalizedDecay == STEALTHCHOP && normalizedDecaySlewing == SPREADCYCLE && velocityThrs > 0) {
+  if (decay.value == STEALTHCHOP && decaySlewing.value == SPREADCYCLE && velocityThrs > 0) {
     VF("MSG:"); V(axisPrefix); VF("TMC decay mode velocity threshold "); V(velocityThrs); VLF(" sps");
     driver->TPWMTHRS(velocityThrs/0.715F);
   }
