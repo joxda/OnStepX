@@ -13,7 +13,7 @@
   #define ANALOG_READ_RANGE 1023
 #endif
 
-void thermistorWrapper() { temperature.poll(); }
+void thermistorWrapper() { temperature2.poll(); }
 
 // prepare for operation
 bool Thermistor::init() {
@@ -122,6 +122,6 @@ float Thermistor::getChannel(int index) {
   } else return NAN;
 }
 
-Thermistor temperature;
+Thermistor temperature2;
 
 #endif

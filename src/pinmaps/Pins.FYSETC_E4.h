@@ -42,7 +42,7 @@
 #define AUX4_PIN                35               // [input only 35] Home SW for Axis2 (Y_MIN)
 #define AUX5_PIN                2                // [must be low at boot 2] Dew heater, etc. (HEAT_E0)
 #define AUX6_PIN                4                // Dew heater, etc. (HEAT_BED)
-#define AUX7_PIN                SPARE_RX_PIN     // Option for 1-Wire, etc.
+#define AUX7_PIN                OFF    // Option for 1-Wire, etc.
 #define AUX8_PIN                13               // Status LED or Buzzer, Dew heater, etc. (FAN_E0)
 
 // Thermistor (temperature) sensor inputs have built-in 4.7K Ohm pullups and a 10uF cap for noise supression
@@ -61,7 +61,7 @@
 
 // Misc. pins
 #ifndef ONE_WIRE_PIN
-  #define ONE_WIRE_PIN          AUX7_PIN         // Default Pin for OneWire bus
+  #define ONE_WIRE_PIN          AUX8_PIN         // Default Pin for OneWire bus
 #endif
 
 // The PEC index sense is a logic level input, resets the PEC index on rising edge then waits for 60 seconds before allowing another reset
@@ -96,51 +96,51 @@
 #define SHARED_ENABLE_PIN       25               // Hint that the enable pins are shared
 
 // Axis1 RA/Azm step/dir driver (X-AXIS)
-#define AXIS1_ENABLE_PIN        SHARED
-#define AXIS1_M0_PIN            OFF              // SPI MOSI
-#define AXIS1_M1_PIN            OFF              // SPI SCK
-#define AXIS1_M2_PIN            OFF              // SPI CS (UART TX)
-#define AXIS1_M3_PIN            OFF              // SPI MISO (UART RX)
-#define AXIS1_STEP_PIN          27
-#define AXIS1_DIR_PIN           26
-#ifndef AXIS1_SENSE_HOME_PIN
-  #define AXIS1_SENSE_HOME_PIN  AUX3_PIN
+#define AXIS5_ENABLE_PIN        SHARED
+#define AXIS5_M0_PIN            OFF              // SPI MOSI
+#define AXIS5_M1_PIN            OFF              // SPI SCK
+#define AXIS5_M2_PIN            OFF              // SPI CS (UART TX)
+#define AXIS5_M3_PIN            OFF              // SPI MISO (UART RX)
+#define AXIS5_STEP_PIN          27
+#define AXIS5_DIR_PIN           26
+#ifndef AXIS5_SENSE_HOME_PIN
+  #define AXIS5_SENSE_HOME_PIN  AUX3_PIN
 #endif
-#ifndef AXIS1_SERVO_PH1_PIN
-  #define AXIS1_SERVO_PH1_PIN   OFF
+#ifndef AXIS5_SERVO_PH1_PIN
+  #define AXIS5_SERVO_PH1_PIN   OFF
 #endif
-#ifndef AXIS1_SERVO_PH2_PIN
-  #define AXIS1_SERVO_PH2_PIN   OFF
+#ifndef AXIS5_SERVO_PH2_PIN
+  #define AXIS5_SERVO_PH2_PIN   OFF
 #endif
-#ifndef AXIS1_ENCODER_A_PIN
-  #define AXIS1_ENCODER_A_PIN   OFF
+#ifndef AXIS5_ENCODER_A_PIN
+  #define AXIS5_ENCODER_A_PIN   OFF
 #endif
-#ifndef AXIS1_ENCODER_B_PIN
-  #define AXIS1_ENCODER_B_PIN   OFF
+#ifndef AXIS5_ENCODER_B_PIN
+  #define AXIS5_ENCODER_B_PIN   OFF
 #endif
 
 // Axis2 Dec/Alt step/dir driver (Y-AXIS)
-#define AXIS2_ENABLE_PIN        SHARED
-#define AXIS2_M0_PIN            OFF              // SPI MOSI
-#define AXIS2_M1_PIN            OFF              // SPI SCK
-#define AXIS2_M2_PIN            OFF              // SPI CS (UART TX)
-#define AXIS2_M3_PIN            OFF              // SPI MISO (UART RX)
-#define AXIS2_STEP_PIN          33
-#define AXIS2_DIR_PIN           32
-#ifndef AXIS2_SENSE_HOME_PIN
-  #define AXIS2_SENSE_HOME_PIN  AUX4_PIN
+#define AXIS6_ENABLE_PIN        SHARED
+#define AXIS6_M0_PIN            OFF              // SPI MOSI
+#define AXIS6_M1_PIN            OFF              // SPI SCK
+#define AXIS6_M2_PIN            OFF              // SPI CS (UART TX)
+#define AXIS6_M3_PIN            OFF              // SPI MISO (UART RX)
+#define AXIS6_STEP_PIN          33
+#define AXIS6_DIR_PIN           32
+#ifndef AXIS6_SENSE_HOME_PIN
+  #define AXIS6_SENSE_HOME_PIN  AUX4_PIN
 #endif
-#ifndef AXIS2_SERVO_PH1_PIN
-  #define AXIS2_SERVO_PH1_PIN   OFF
+#ifndef AXIS6_SERVO_PH1_PIN
+  #define AXIS6_SERVO_PH1_PIN   OFF
 #endif
-#ifndef AXIS2_SERVO_PH2_PIN
-  #define AXIS2_SERVO_PH2_PIN   OFF
+#ifndef AXIS6_SERVO_PH2_PIN
+  #define AXIS6_SERVO_PH2_PIN   OFF
 #endif
-#ifndef AXIS2_ENCODER_PH1_PIN
-  #define AXIS2_ENCODER_A_PIN   OFF
+#ifndef AXIS6_ENCODER_PH1_PIN
+  #define AXIS6_ENCODER_A_PIN   OFF
 #endif
-#ifndef AXIS2_ENCODER_B_PIN
-  #define AXIS2_ENCODER_B_PIN   OFF
+#ifndef AXIS6_ENCODER_B_PIN
+  #define AXIS6_ENCODER_B_PIN   OFF
 #endif
 
 // For rotator stepper driver (Z-AXIS)
@@ -162,14 +162,14 @@
 #define AXIS4_DIR_PIN           17
 
 // For focuser2 stepper driver (Z-AXIS)
-#define AXIS5_ENABLE_PIN        SHARED
+/*#define AXIS5_ENABLE_PIN        SHARED
 #define AXIS5_M0_PIN            OFF              // SPI MOSI
 #define AXIS5_M1_PIN            OFF              // SPI SCK
 #define AXIS5_M2_PIN            OFF              // SPI CS (UART TX)
 #define AXIS5_M3_PIN            OFF              // SPI MISO (UART RX)
 #define AXIS5_STEP_PIN          14
 #define AXIS5_DIR_PIN           12               // [must be low at boot 12]
-
+*/
 // ST4 interface
 #define ST4_RA_W_PIN            OFF              // ST4 RA- West
 #define ST4_DEC_S_PIN           OFF              // ST4 DE- South

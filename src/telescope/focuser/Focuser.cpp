@@ -195,7 +195,7 @@ void Focuser::begin() {
 
 // get focuser temperature in deg. C
 float Focuser::getTemperature() {
-  float t = temperature.getChannel(0);
+  float t = temperature2.getChannel(0);
   return t;
 }
 

@@ -51,6 +51,6 @@ class Thermistor {
     };
 };
 
-extern Thermistor temperature;
+extern Thermistor temperature2;
 
 #endif

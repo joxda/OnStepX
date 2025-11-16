@@ -167,6 +167,7 @@ void Telescope::init(const char *fwName, int fwMajor, int fwMinor, const char *f
   }
   weather.init();
   temperature.init();
+  temperature2.init();
 
   #if OPERATIONAL_MODE == WIFI && WEB_SERVER == ON
     wifiManager.init();
