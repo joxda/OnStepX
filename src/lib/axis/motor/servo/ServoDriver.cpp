@@ -42,6 +42,7 @@ ServoDriver::ServoDriver(uint8_t axisNumber, const ServoPins *Pins, const ServoS
   statusMode = Settings->status;
 
   acceleration.valueDefault = Settings->acceleration;
+  zeroDeadband.valueDefault = 0.0F;
 }
 
 bool ServoDriver::init(bool reverse) {
@@ -73,6 +74,18 @@ bool ServoDriver::init(bool reverse) {
   return true;
 }
 
+void ServoDriver::enable(bool state) {
+  enabled = state;
+
+  // Only touch a real, dedicated enable pin
+  if (enablePin != OFF && enablePin != SHARED) {
+    digitalWriteEx(enablePin, state ? enabledState : !enabledState);
+  }
+
+  // Default behavior: if disabled, force ramp to 0 so outputs converge quickly
+  if (!state) velocityRamp = 0.0F;
+}
+
 void ServoDriver::setFrequencyMax(float frequency) {
   velocityMax = frequency;
 
@@ -86,6 +99,8 @@ void ServoDriver::setFrequencyMax(float frequency) {
 
 float ServoDriver::setMotorVelocity(float velocity) {
   if (!enabled) velocity = 0.0F;
+
+  if (zeroDeadband.value > 0.0F && fabsf(velocity) < zeroDeadband.value) velocity = 0.0F;
 
   if (velocity > velocityMax) velocity = velocityMax; else
   if (velocity < -velocityMax) velocity = -velocityMax;
@@ -114,7 +129,7 @@ void ServoDriver::updateStatus() {
   if (statusMode == ON) {
     const unsigned long now = millis();
 
-    if ((long)(now - timeLastStatusUpdate) > 200U) {
+    if ((long)(now - timeLastStatusUpdate) > 200L) {
       readStatus();
 
       // open load indication is not reliable in standstill
