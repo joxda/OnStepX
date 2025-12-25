@@ -44,7 +44,7 @@
 #define FirmwareName                "On-Step"
 #define FirmwareVersionMajor        10
 #define FirmwareVersionMinor        27     // minor version 00 to 99
-#define FirmwareVersionPatch        "a"    // for example major.minor patch: 10.03c
+#define FirmwareVersionPatch        "b"    // for example major.minor patch: 10.03c
 #define FirmwareVersionConfig       6      // internal, for tracking configuration file changes
 
 #include "src/Common.h"
@@ -87,8 +87,6 @@ void setup() {
     PIN_INIT();
   #endif
 
-  analog.begin();
-
   // say hello
   VLF("");
   VF("MSG: OnStepX, version "); V(FirmwareVersionMajor); V("."); V(FirmwareVersionMinor); VL(FirmwareVersionPatch);
@@ -99,6 +97,8 @@ void setup() {
   VLF("MSG: System, HAL initialize");
   HAL_INIT();
   WIRE_INIT();
+
+  analog.begin();
 
   if (!nv.init()) {
     DLF("ERR: Setup, NV (EEPROM/FRAM/Flash/etc.) device not found!");
