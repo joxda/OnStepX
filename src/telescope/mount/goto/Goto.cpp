@@ -145,6 +145,19 @@ CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, boo
     waypoint(&current);
   }
 
+  // allow goto and enable tracking after any of the limits below are exceeded
+  // typically these are triggered by tracking into the relevant limit and
+  // a goto is safe since it should always move away from the limit else it wouldn't be allowed
+  // finally I enabling tracking again since that allows for easy recovery
+  #if LIMIT_RECOVERY == ON
+    if (limits.isBelowHorizon() || limits.isPastMeridianW() || limits.isPastAxis1Max()) {
+      limits.limitsDisablePeriod(1.0F);
+      #if LIMIT_RECOVERY_WITH_TRACKING == ON
+        if (home.state != HS_HOMING && park.state != PS_PARKING) mount.tracking(true);
+      #endif
+    }
+  #endif
+
   // start the goto monitor
   if (taskHandle != 0) tasks.remove(taskHandle);
   taskHandle = tasks.add(0, 0, true, 3, gotoWrapper, "MntGoto");

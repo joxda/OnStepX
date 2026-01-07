@@ -77,8 +77,17 @@ class Limits {
     // true if an error exists that impacts goto safety
     bool isGotoError();
 
+    // true if an below horizon limit
+    inline bool isBelowHorizon() { return error.altitude.min; }
+
     // true if an above overhead limit
-    bool isAboveOverhead() { return error.altitude.max; }
+    inline bool isAboveOverhead() { return error.altitude.max; }
+
+    // true if past meridian limit west
+    inline bool isPastMeridianW() { return error.meridian.west; }
+
+    // true if past the axis1 max limit
+    inline bool isPastAxis1Max() { return error.limit.axis1.max; } 
 
     // return general error code
     uint8_t errorCode();
@@ -88,6 +97,9 @@ class Limits {
 
     // check if limits are being enforced
     inline bool isEnabled() { return limitsEnabled; }
+
+    // disable meridian limits for the specified period in seconds
+    void limitsDisablePeriod(float seconds) { limitsDisablePeriodDs = lroundf(seconds*10.0F); }
 
     void poll();
 
@@ -102,6 +114,8 @@ class Limits {
 
     bool limitsEnabled = false;
     LimitsError error;
+
+    int limitsDisablePeriodDs = 0; // in deciseconds (0.1s)
 };
 
 extern Limits limits;
