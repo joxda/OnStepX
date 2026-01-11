@@ -39,7 +39,7 @@ typedef struct RotatorSettings {
 #include "../../../lib/canTransport/CanTransportServer.h"
 class Rotator : public CanTransportServer {
 private:
-  void processCommand(const uint8_t data[8], uint8_t len) override;
+  void processCommand() override;
 public:
   Rotator() : CanTransportServer((uint16_t)(CAN_ROTATOR_REQ_ID), (uint16_t)(CAN_ROTATOR_RSP_ID)) {}
 #else
@@ -48,11 +48,11 @@ public:
 #endif
 
   // initialize rotator
-  void init();
+  bool init();
   void begin();
 
   // process rotator commands
-  bool command(char *reply, char *command, char *parameter, bool *supressFrame, bool *numericReply, CommandError *commandError);
+  bool command(char *reply, char *command, char *parameter, bool *suppressFrame, bool *numericReply, CommandError *commandError);
 
   // poll rotator to handle parking and derotation
   void monitor();

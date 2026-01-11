@@ -9,7 +9,6 @@
 #ifdef ROTATOR_CAN_CLIENT_PRESENT
 
 #include "../../../lib/canTransport/CanTransportClient.h"
-#include "../../../lib/canTransport/CanPayload.h"
 #include "../../../libApp/commands/ProcessCmds.h"
 
 class Rotator : public CanTransportClient {
@@ -19,19 +18,14 @@ class Rotator : public CanTransportClient {
     void begin();
 
     bool command(char *reply, char *command, char *parameter,
-                 bool *supressFrame, bool *numericReply, CommandError *commandError);
+                 bool *suppressFrame, bool *numericReply, CommandError *commandError);
 
     // Heartbeat event
     inline void heartbeat() { lastHeartbeatMs = hb_stamp_2ms_odd(); }
 
   private:
-    bool encodeRequest(uint8_t &opcode, uint8_t &tidop,
-                       uint8_t requestPayload[8], uint8_t &requestLen,
-                       char *command, char *parameter);
-
-    bool decodeResponse(char *reply, uint8_t opcode,
-                        const uint8_t responsePayload[8], uint8_t responseLen,
-                        bool &supressFrame, bool &numericReply);
+    bool encodeRequest(char *command, char *parameter);
+    bool decodeResponse(char *reply);
 
     static inline uint32_t hb_stamp_2ms_odd() {
       return millis() | 1UL;

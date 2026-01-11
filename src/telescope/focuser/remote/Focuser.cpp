@@ -24,58 +24,13 @@ void Focuser::begin() {
   canPlus.callbackRegisterId((int)(CAN_FOCUSER_HB_ID_BASE + 5), focHb5);
 }
 
-// by default reply[80] == "", supressFrame == false, numericReply == true, and commandError == CE_NONE
+// by default reply[80] == "", suppressFrame == false, numericReply == true, and commandError == CE_NONE
 // return true if the command has been completely handled and no further command() will be called, or false if not
 // for commands that are handled repeatedly commandError might contain CE_NONE or CE_1 to indicate success
 // numericReply=true means boolean/numeric-style responses (e.g., CE_1/CE_0/errors) rather than a payload
 bool Focuser::command(char *reply, char *command, char *parameter,
-                      bool *supressFrame, bool *numericReply, CommandError *commandError) {
+                      bool *suppressFrame, bool *numericReply, CommandError *commandError) {
   if (!canPlus.ready) return false;
-
-  // --------------------------------------------------------------------------
-  // :hP# / :hR#  park/unpark ALL present focusers
-  // Numeric result only. Defaults: numericReply==true, supressFrame==false.
-  // --------------------------------------------------------------------------
-  if (command[0] == 'h' && (command[1] == 'P' || command[1] == 'R') && parameter[0] == 0) {
-    const uint8_t op = (command[1] == 'P') ? (uint8_t)FOC_OP_PARK_HP : (uint8_t)FOC_OP_UNPARK_HR;
-    static uint8_t tid = 0;
-
-    bool anySent = false;
-    CommandError worst = CE_NONE;
-
-    for (uint8_t focuserIdx = 0; focuserIdx < 6; focuserIdx++) {
-      if (!heartbeatFresh(focuserIdx)) continue;
-      anySent = true;
-
-      tid = (uint8_t)((tid + 1) & 0x07);
-      const uint8_t tidop = packTidOp(tid, op);
-      const uint8_t ctrl  = (uint8_t)((focuserIdx + 1) & FOC_CTRL_FOCUSER_MASK);
-
-      uint8_t req[8] = { tidop, ctrl, 0,0,0,0,0,0 };
-      uint8_t rsp[8] = {0};
-      uint8_t rspLen = 0;
-
-      if (!transact(tidop, req, 2, rsp, rspLen) || rspLen < 2 || rsp[0] != tidop) {
-        worst = CE_REPLY_UNKNOWN;
-        continue;
-      }
-
-      bool handled = false, nr = true, sf = false;
-      uint8_t ce = 0;
-      unpackStatus(rsp[1], handled, nr, sf, ce);
-
-      if (!handled) { worst = CE_CMD_UNKNOWN; continue; }
-      if ((CommandError)ce != CE_NONE && (CommandError)ce != CE_1) worst = (CommandError)ce;
-    }
-
-    *commandError = (!anySent) ? CE_0 : ((worst == CE_NONE) ? CE_1 : worst);
-    return true;
-  }
-
-  // --------------------------------------------------------------------------
-  // F - focuser commands only
-  // --------------------------------------------------------------------------
-  if (command[0] != 'F') return false;
 
   // find the default focuser if the current one isn't active
   // if the current focuser is unassigned (-1) or disappears scan again
@@ -87,86 +42,118 @@ bool Focuser::command(char *reply, char *command, char *parameter,
   }
 
   // --------------------------------------------------------------------------
-  // :FA# / :FA[n]# active focuser return / selection
+  // :hP# / :hR#  park/unpark ALL present focusers
+  // Numeric result only. Defaults: numericReply==true, suppressFrame==false.
   // --------------------------------------------------------------------------
+  if (command[0] == 'h' && (command[1] == 'P' || command[1] == 'R') && parameter[0] == 0) {
+    const uint8_t op = (command[1] == 'P') ? (uint8_t)FOC_OP_PARK_HP : (uint8_t)FOC_OP_UNPARK_HR;
+
+    bool anySent = false;
+    CommandError worst = CE_NONE; 
+
+    for (uint8_t focuserIdx = 0; focuserIdx < 6; focuserIdx++) {
+      uint8_t ctrl = (uint8_t)(focuserIdx & FOC_CTRL_FOCUSER_MASK);
+
+      if (!heartbeatFresh(focuserIdx)) continue;
+      anySent = true;
+
+      if (beginNewRequest(op)) {
+        writeU8(ctrl);
+        bool handled = false;
+        if (transactRequest(handled, *suppressFrame, *numericReply, *commandError)) {
+          if (!handled) worst = CE_CMD_UNKNOWN;
+        } else *commandError = CE_REPLY_UNKNOWN;
+      }
+
+      if (*commandError != CE_NONE && *commandError != CE_1) worst = *commandError;
+    }
+
+    *commandError = (!anySent) ? CE_0 : ((worst == CE_NONE) ? CE_1 : worst);
+    return true;
+  }
+
+  // --------------------------------------------------------------------------
+  // F - focuser commands only
+  // --------------------------------------------------------------------------
+  if (command[0] != 'F') return false;
+
+  // --------------------------------------------------------------------------
+  // active focuser return / selection
+  // --------------------------------------------------------------------------
+
   if (command[1] == 'A') {
 
-    // :FA# -> query selected focuser (string reply), or numeric 0 if none
+    // :FA#    Focuser Active?
+    //            Return: 0 on failure (no focusers)
+    //                    1 to 6 on success
     if (parameter[0] == 0) {
-      if (active < 0 || active > 5) { *commandError = CE_0; return true; } // numeric 0 via defaults
-
-      if (!heartbeatFresh(active)) { *commandError = CE_0; return true; } // numeric 0
+      if (active < 0) { *commandError = CE_0; return true; }
 
       const uint8_t focuserNum = (uint8_t)(active + 1);
-
       sprintf(reply, "%u", (unsigned)focuserNum);
       *numericReply = false;
-      *supressFrame = true;
+      *suppressFrame = true;
       *commandError = CE_NONE;
       return true;
-    }
+    } else
 
-    // :FA[n]# -> set selected focuser; numeric success/fail only
+    // :FA[n]#    Select focuser where [n] = 1 to 6
+    //            Return: 0 on failure
+    //                    1 on success
     if (parameter[1] == 0) {
       const int i = parameter[0] - '1';
-      if (i < 0 || i >= 6) { *commandError = CE_PARAM_RANGE; return true; }
+      if (i < 0 || i > 5 || !heartbeatFresh(i)) { *commandError = CE_PARAM_RANGE; return true; }
       active = i;
       return true;
-    }
-
-    return false;
+    } else return false;
   }
 
   // --------------------------------------------------------------------------
-  // :Fa#       Get primary focuser
-  //            Returns: 1 true if active
+  // :Fa#       Focuser presence detection
+  //            Returns: 1 true if present
   // --------------------------------------------------------------------------
   if (command[1] == 'a' && parameter[0] == 0) {
-    if (!heartbeatFresh(active)) return false; else return true;
+    const int i = parameter[0] - '1';
+    if (i < 0 || i > 5 || !heartbeatFresh(i)) { *commandError = CE_PARAM_RANGE; return true; }
+    return true;
   }
 
+  // :F[n]a#    Focuser presence detection
   if ((command[1] >= '1' && command[1] <= '6' && parameter[0] == 'a' && parameter[1] == 0)) {
-    if (!heartbeatFresh(command[1] - '1')) return false; else return true;
-  }
+    sprintf(reply, "%u", heartbeatFresh((int)(command[1] - '1')) ? 1u : 0u);
+    *numericReply = false;
+    *suppressFrame = true;
+    *commandError = CE_NONE;
+  } else
 
   // --------------------------------------------------------------------------
   // Generic CAN request/response path
   // --------------------------------------------------------------------------
-  uint8_t opcode = 0, tidop = 0;
-  uint8_t req[8] = {0};
-  uint8_t reqLen = 0;
 
-  if (!encodeRequest(opcode, tidop, req, reqLen, command, parameter)) return false;
+  if (!encodeRequest(command, parameter)) return false;
 
-  uint8_t rsp[8] = {0};
-  uint8_t rspLen = 0;
+  // Transport failure => reply unknown
+  bool handled = false;
+  if (!transactRequest(handled, *suppressFrame, *numericReply, *commandError)) { *commandError  = CE_REPLY_UNKNOWN; return true; }
 
-  if (!transact(tidop, req, reqLen, rsp, rspLen) || rspLen < 2 || rsp[0] != tidop) {
-    *commandError = CE_REPLY_UNKNOWN;
-    return true;
-  }
-
-  bool handled = false, nr = true, sf = false;
-  uint8_t ce = 0;
-  unpackStatus(rsp[1], handled, nr, sf, ce);
-
+  // Remote explicitly did not recognize/handle the command
   if (!handled) {
-    *commandError = CE_CMD_UNKNOWN;
+    *commandError  = CE_CMD_UNKNOWN;
+    *numericReply  = true;
+    *suppressFrame = false;
+    reply[0] = 0;
     return true;
   }
 
-  // remote owns policy (even for CE_NONE / CE_1 / CE_0)
-  *numericReply = nr;
-  *supressFrame = sf;
-  *commandError = (CommandError)ce;
+  // Numeric reply: nothing to decode; caller will render numeric based on commandError
+  if (*numericReply) return true;
 
-  // if this isn't a numeric reply decode it
-  if (!*numericReply) {
-    if (!decodeResponse(reply, opcode, rsp, rspLen, *supressFrame, *numericReply)) {
-      *commandError = CE_REPLY_UNKNOWN;
-      *numericReply = true;
-      reply[0] = 0;
-    }
+  // Payload reply: decode into reply buffer; decode failure => reply unknown
+  if (!decodeResponse(reply)) {
+    *commandError  = CE_REPLY_UNKNOWN;
+    *numericReply  = true;
+    *suppressFrame = false;
+    reply[0] = 0;
   }
 
   return true;
