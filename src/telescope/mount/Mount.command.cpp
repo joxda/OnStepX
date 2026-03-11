@@ -237,19 +237,19 @@ bool Mount::command(char *reply, char *command, char *parameter, bool *suppressF
 
         switch (parameter[1]) {
 
-          // set encoder Axis1 value
+          // stage encoder Axis1 value (depreciated)
           case '0':
             d = strtod(&parameter[3], &conv_end);
             if (&parameter[3] != conv_end && fabs(d) <= 360.0L) { encoderAxis1 = degToRad(d); } else { encoderAxis1 = NAN; *commandError = CE_PARAM_RANGE; }
           break;
 
-          // set encoder Axis2 value
+          // stage encoder Axis2 value (depreciated)
           case '1':
             d = strtod(&parameter[3], &conv_end);
             if (&parameter[3] != conv_end && fabs(d) <= 360.0L) { encoderAxis2 = degToRad(d); } else { encoderAxis2 = NAN; *commandError = CE_PARAM_RANGE; }
           break;
 
-          // sync from encoder values
+          // sync from encoder values (depreciated)
           case '2':
             if (parameter[3] == '1' && parameter[4] == 0) {
               #if GOTO_FEATURE == ON
@@ -265,7 +265,7 @@ bool Mount::command(char *reply, char *command, char *parameter, bool *suppressF
           // allow sws to control sync mode
           case '3': syncFromOnStepToEncoders = false; break;
 
-          // set and sync encoder Axis1 and Axis2 values
+          // set and sync from encoder Axis1 and Axis2 values
           case '4': {
             d = strtod(&parameter[3], &conv_end);
             if (&parameter[3] != conv_end && fabs(d) <= 360.0L) { encoderAxis1 = degToRad(d); } else { encoderAxis1 = NAN; }
@@ -363,9 +363,9 @@ bool Mount::command(char *reply, char *command, char *parameter, bool *suppressF
       if (settings.rc == RC_REFRACTION) settings.rc = RC_REFRACTION_DUAL; else
       if (settings.rc == RC_MODEL) settings.rc = RC_MODEL_DUAL;
     } else
-    if (command[1] == 'S') { settings.rc = RC_NONE; trackingRate = hzToSidereal(SOLAR_RATE_HZ); } else
-    if (command[1] == 'K') { settings.rc = RC_NONE; trackingRate = hzToSidereal(KING_RATE_HZ); } else
-    if (command[1] == 'L') { settings.rc = RC_NONE; trackingRate = hzToSidereal(LUNAR_RATE_HZ); } else
+    if (command[1] == 'S') { trackingRate = hzToSidereal(SOLAR_RATE_HZ); } else
+    if (command[1] == 'K') { trackingRate = hzToSidereal(KING_RATE_HZ); } else
+    if (command[1] == 'L') { trackingRate = hzToSidereal(LUNAR_RATE_HZ); } else
     if (command[1] == 'Q') { trackingRate = hzToSidereal(SIDEREAL_RATE_HZ); } else
     if (command[1] == '+') { site.setSiderealPeriod(site.getSiderealPeriod() - hzToSubMicros(0.02F)); } else
     if (command[1] == '-') { site.setSiderealPeriod(site.getSiderealPeriod() + hzToSubMicros(0.02F)); } else
@@ -390,7 +390,6 @@ bool Mount::command(char *reply, char *command, char *parameter, bool *suppressF
 
     if (*commandError == CE_NONE) {
       switch (command[1]) { case 'S': case 'K': case 'L': case 'Q': case '+': case '-': case 'R': *numericReply = false; }
-      switch (command[1]) { case 'o': case 'r': case 'n': trackingRate = hzToSidereal(SIDEREAL_RATE_HZ); }
       nv().kv().put(nvKey, settings);
       update();
     }
