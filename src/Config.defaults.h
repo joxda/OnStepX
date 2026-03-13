@@ -247,8 +247,8 @@
 #ifndef AXIS1_LIMIT_MAX
 #define AXIS1_LIMIT_MAX               180                         // in degrees
 #endif
-#ifndef AXIS1_SYNC_THRESHOLD
-#define AXIS1_SYNC_THRESHOLD          OFF                         // sync threshold in degrees, or OFF
+#ifndef AXIS1_LIMIT_SYNC
+#define AXIS1_LIMIT_SYNC              OFF                         // sync limit in degrees, or OFF
 #endif
 #ifndef AXIS1_SENSE_HOME
 #define AXIS1_SENSE_HOME              OFF                         // HIGH or LOW state when clockwise of home position, seen from front
@@ -420,8 +420,8 @@
 #ifndef AXIS2_LIMIT_MAX
 #define AXIS2_LIMIT_MAX               90                          // in degrees
 #endif
-#ifndef AXIS2_SYNC_THRESHOLD
-#define AXIS2_SYNC_THRESHOLD          OFF                         // sync threshold in degrees, or OFF
+#ifndef AXIS2_LIMIT_SYNC
+#define AXIS2_LIMIT_SYNC              OFF                         // sync limit in degrees, or OFF
 #endif
 #ifndef AXIS2_SENSE_HOME
 #define AXIS2_SENSE_HOME              OFF                         // HIGH or LOW state when clockwise of home position, seen from above
@@ -620,6 +620,15 @@
 #ifndef MOUNT_COORDS_MEMORY
 #define MOUNT_COORDS_MEMORY           OFF                         // ON Enables mount position memory
 #endif
+// SA_STRICT requires an authority source
+// SA_AUTO grants legacy session trust only when neither paired absolute authority nor coordinate memory are configured
+// SA_PERMISSIVE always grants boot trust
+#ifndef MOUNT_STARTUP_MODE
+#define MOUNT_STARTUP_MODE            SA_AUTO
+#endif
+#ifndef NV_INIT_ERROR_REVOKES_AUTHORITY
+#define NV_INIT_ERROR_REVOKES_AUTHORITY ON                        // ON revokes startup authority trust if NV reports an init/read fault
+#endif
 #ifndef MOUNT_ENABLE_IN_STANDBY
 #define MOUNT_ENABLE_IN_STANDBY       OFF                         // ON Enables mount motor drivers in standby
 #endif
@@ -767,10 +776,6 @@
 
 #ifndef PARK_STATUS
 #define PARK_STATUS                   OFF
-#endif
-
-#ifndef PARK_STRICT
-#define PARK_STRICT                   OFF
 #endif
 
 // pec

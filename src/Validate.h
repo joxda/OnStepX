@@ -369,6 +369,14 @@
   #error "Configuration (Config.h): Setting MOUNT_COORDS_MEMORY unknown, use ON or OFF"
 #endif
 
+#if MOUNT_STARTUP_MODE < SA_STRICT || MOUNT_STARTUP_MODE > SA_PERMISSIVE
+  #error "Configuration (Config.h): Setting MOUNT_STARTUP_MODE unknown, use SA_STRICT, SA_AUTO, or SA_PERMISSIVE"
+#endif
+
+#if NV_INIT_ERROR_REVOKES_AUTHORITY != ON && NV_INIT_ERROR_REVOKES_AUTHORITY != OFF
+  #error "Configuration (Config.h): Setting NV_INIT_ERROR_REVOKES_AUTHORITY unknown, use OFF or ON."
+#endif
+
 #if MOUNT_ENABLE_IN_STANDBY != ON && MOUNT_ENABLE_IN_STANDBY != OFF
   #error "Configuration (Config.h): Setting MOUNT_ENABLE_IN_STANDBY unknown, use ON or OFF"
 #endif
@@ -522,9 +530,15 @@
   #error "Configuration (Config.h): Setting PIER_SIDE_SYNC_CHANGE_SIDES unknown, use OFF or ON."
 #endif
 
+static_assert(AXIS1_LIMIT_SYNC == OFF || (AXIS1_LIMIT_SYNC >= 0 && AXIS1_LIMIT_SYNC <= 90),
+  "Configuration (Config.h): Setting AXIS1_LIMIT_SYNC unknown, use OFF or value in the range 0 to 90.");
+
+static_assert(AXIS2_LIMIT_SYNC == OFF || (AXIS2_LIMIT_SYNC >= 0 && AXIS2_LIMIT_SYNC <= 90),
+  "Configuration (Config.h): Setting AXIS2_LIMIT_SYNC unknown, use OFF or value in the range 0 to 90.");
+
 #if PIER_SIDE_SYNC_CHANGE_SIDES == ON
-  static_assert(AXIS1_SYNC_THRESHOLD == OFF && AXIS2_SYNC_THRESHOLD == OFF,
-    "Configuration (Config.h): Enabling AXIS1_SYNC_THRESHOLD or AXIS2_SYNC_THRESHOLD requires PIER_SIDE_SYNC_CHANGE_SIDES to be OFF.");
+  static_assert(AXIS1_LIMIT_SYNC == OFF && AXIS2_LIMIT_SYNC == OFF,
+    "Configuration (Config.h): Enabling AXIS1_LIMIT_SYNC or AXIS2_LIMIT_SYNC requires PIER_SIDE_SYNC_CHANGE_SIDES to be OFF.");
 #endif
 
 #if PIER_SIDE_PREFERRED_DEFAULT < PIER_SIDE_FIRST && PIER_SIDE_PREFERRED_DEFAULT > PIER_SIDE_LAST
@@ -536,8 +550,10 @@
 #endif
 
 // PARKING BEHAVIOUR
-#if PARK_STRICT != ON && PARK_STRICT != OFF
-  #error "Configuration (Config.h): Setting PARK_STRICT unknown, use OFF or ON."
+#ifdef PARK_STRICT
+  #if PARK_STRICT == ON
+    #error "Configuration (Config.h): PARK_STRICT is obsolete. Remove it and use the startup authority / parking policy defaults instead."
+  #endif
 #endif
 
 // ROTATOR ---------------------------------------
