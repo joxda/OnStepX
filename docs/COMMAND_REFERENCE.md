@@ -418,6 +418,9 @@ Current core constants are:
 
 ### Limits
 
+For a visual explanation of confusing GEM east/west pier-side limit geometry,
+see [GOTO_NOTES.md](GOTO_NOTES.md#workflow-4-reachability-and-target-unwinding).
+
 | Command | Reply | Description |
 | --- | --- | --- |
 | `:Gh#` | `sDD*#` | Horizon limit |
@@ -817,6 +820,9 @@ Locale-backed axis parameter name tokens currently used by firmware:
 | `$26` | Max power, % |
 
 ## CAN Remote-Node Variants
+
+For architecture, configuration, and current scope, see
+[CAN_NOTES.md](CAN_NOTES.md).
 
 The following files implement the same logical command families over packed CAN messages rather than the ASCII LX200-style transport:
 
