@@ -18,7 +18,8 @@ If trust is true:
 If trust is false:
 - coordinate-based automatic operations are blocked
 - manual guide recovery is still allowed
-- plain sidereal tracking is still allowed
+- plain sidereal tracking is not gated by startup authority itself, but it may
+  still be blocked by other safety policy
 
 ## Two useful distinctions
 
@@ -31,6 +32,11 @@ If trust is false:
 - an authoritative startup-time action later establishes trust
 
 Date/time readiness is separate from both of the above.
+
+Limit enforcement is related but separate too:
+- startup authority answers whether the coordinate basis is trusted
+- date/time readiness answers whether sky-referenced operation is ready
+- limit enforcement can become active as soon as both are available
 
 ## What currently establishes trust
 
@@ -89,7 +95,13 @@ Blocked:
 
 Allowed:
 - manual guide
-- plain sidereal tracking
+- plain sidereal tracking, subject to the normal tracking safety policy
+
+Important tracking note:
+- startup authority does not itself gate plain sidereal tracking
+- however, tracking is still subject to other conditions such as parked state,
+  date/time-dependent enable rules, and limit policy
+- by default, tracking is disallowed when limits are not enforced
 
 ## Parking workflow
 
@@ -277,6 +289,14 @@ In that state:
 - the coordinate basis may still be considered authoritative
 - but some operations may remain postponed or blocked until date/time is ready
 
+For mounts using trusted coordinate memory restore or trusted paired absolute
+startup position:
+- once date/time becomes ready, limit enforcement can be enabled immediately
+- this does not require a later goto, reset/home, or unpark just to make
+  limits active
+- that in turn allows tracking requests to succeed normally under the usual
+  limit-safety policy
+
 Example:
 - unpark recovery may wait for the normal site/time flow even when trust is
   already valid
@@ -286,7 +306,8 @@ Example:
 If trust is lost after startup:
 - coordinate-based automatic motion stops being allowed
 - manual guide recovery remains available
-- sidereal tracking remains allowed
+- sidereal tracking is still not gated by startup authority itself, but it
+  remains subject to the normal tracking safety policy
 
 The guiding rule is:
 - if the system knows where it is, coordinate-based automatic motion is allowed
@@ -308,7 +329,9 @@ The guiding rule is:
 - current model fits this workflow well
 
 3. User wants only sidereal tracking at startup:
-- trust does not gate sidereal tracking
+- trust does not gate sidereal tracking by itself
+- but default safety behavior still disallows tracking when limits are not
+  enforced
 - this is intentional and should remain so
 
 ## NV policy
