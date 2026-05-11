@@ -19,13 +19,19 @@ bool CommandBroker::init() {
   #endif
 
   for (uint8_t i = 0; i < COMMAND_BROKER_SLOTS; i++) {
-    request[i].state = CB_FREE;
-    request[i].generation = 0;
+    requests[i].state = CB_FREE;
+    requests[i].generation = 0;
   }
 
-  initialized = true;
   VF("MSG: System, start command broker task (rate 3ms priority 5)... ");
-  if (tasks.add(3, 0, true, 5, commandBrokerWrapper, "CmdBrkr")) { VLF("success"); return true; } else { VLF("FAILED!"); return false; }
+  if (tasks.add(3, 0, true, 5, commandBrokerWrapper, "CmdBrkr")) {
+    initialized = true;
+    VLF("success");
+    return true;
+  } else {
+    VLF("FAILED!");
+    return false;
+  }
 }
 
 uint8_t CommandBroker::request(const char *command, unsigned long timeoutMs) {
@@ -41,15 +47,15 @@ uint8_t CommandBroker::enqueue(const char *command, unsigned long timeoutMs, boo
 
   lock();
   for (uint8_t i = 0; i < COMMAND_BROKER_SLOTS; i++) {
-    if (request[i].state == CB_FREE) {
-      sstrcpy(request[i].command, command);
-      request[i].reply[0] = 0;
-      request[i].timeoutMs = timeoutMs;
-      request[i].deadline = 0;
-      request[i].replyExpected = replyExpected;
-      request[i].generation++;
-      if (request[i].generation == 0) request[i].generation = 1;
-      request[i].state = CB_PENDING;
+    if (requests[i].state == CB_FREE) {
+      sstrcpy(requests[i].command, command);
+      requests[i].reply[0] = 0;
+      requests[i].timeoutMs = timeoutMs;
+      requests[i].deadline = 0;
+      requests[i].replyExpected = replyExpected;
+      requests[i].generation++;
+      if (requests[i].generation == 0) requests[i].generation = 1;
+      requests[i].state = CB_PENDING;
       uint8_t handle = makeHandle(i);
       unlock();
       return handle;
@@ -60,11 +66,13 @@ uint8_t CommandBroker::enqueue(const char *command, unsigned long timeoutMs, boo
 }
 
 CommandBrokerStatus CommandBroker::status(uint8_t handle) {
+  if (!initialized) return CB_FREE;
+
   int8_t slot = handleToSlot(handle);
   if (slot < 0) return CB_FREE;
 
   lock();
-  CommandBrokerStatus state = handleValid(handle, slot) ? request[slot].state : CB_FREE;
+  CommandBrokerStatus state = handleValid(handle, slot) ? requests[slot].state : CB_FREE;
   unlock();
   return state;
 }
@@ -72,18 +80,19 @@ CommandBrokerStatus CommandBroker::status(uint8_t handle) {
 CommandBrokerStatus CommandBroker::result(uint8_t &handle, char *reply, size_t replySize) {
   if (reply != NULL && replySize > 0) reply[0] = 0;
   if (reply == NULL || replySize == 0) { handle = 0; return CB_FREE; }
+  if (!initialized) { handle = 0; return CB_FREE; }
 
   int8_t slot = handleToSlot(handle);
   if (slot < 0) { handle = 0; return CB_FREE; }
 
   lock();
-  CommandBrokerStatus state = handleValid(handle, slot) ? request[slot].state : CB_FREE;
+  CommandBrokerStatus state = handleValid(handle, slot) ? requests[slot].state : CB_FREE;
   if (state == CB_DONE) {
-    sstrcpyex(reply, request[slot].reply, replySize);
-    request[slot].state = CB_FREE;
+    sstrcpyex(reply, requests[slot].reply, replySize);
+    requests[slot].state = CB_FREE;
     handle = 0;
   } else if (state == CB_TIMEOUT) {
-    request[slot].state = CB_FREE;
+    requests[slot].state = CB_FREE;
     handle = 0;
   } else if (state == CB_FREE) {
     handle = 0;
@@ -93,11 +102,13 @@ CommandBrokerStatus CommandBroker::result(uint8_t &handle, char *reply, size_t r
 }
 
 void CommandBroker::release(uint8_t handle) {
+  if (!initialized) return;
+
   int8_t slot = handleToSlot(handle);
   if (slot < 0) return;
 
   lock();
-  if (handleValid(handle, slot) && request[slot].state != CB_SENT) request[slot].state = CB_FREE;
+  if (handleValid(handle, slot) && requests[slot].state != CB_SENT) requests[slot].state = CB_FREE;
   unlock();
 }
 
@@ -107,9 +118,9 @@ void CommandBroker::poll() {
   if (active < 0) {
     lock();
     for (uint8_t i = 0; i < COMMAND_BROKER_SLOTS; i++) {
-      if (request[i].state == CB_PENDING) {
-        if (request[i].replyExpected) request[i].deadline = millis() + request[i].timeoutMs;
-        request[i].state = CB_SENT;
+      if (requests[i].state == CB_PENDING) {
+        if (requests[i].replyExpected) requests[i].deadline = millis() + requests[i].timeoutMs;
+        requests[i].state = CB_SENT;
         active = i;
         break;
       }
@@ -118,10 +129,10 @@ void CommandBroker::poll() {
 
     if (active >= 0) {
       SERIAL_LOCAL.receive();
-      SERIAL_LOCAL.transmit(request[active].command);
-      if (!request[active].replyExpected) {
+      SERIAL_LOCAL.transmit(requests[active].command);
+      if (!requests[active].replyExpected) {
         lock();
-        request[active].state = CB_FREE;
+        requests[active].state = CB_FREE;
         active = -1;
         unlock();
       }
@@ -133,16 +144,16 @@ void CommandBroker::poll() {
   if (SERIAL_LOCAL.receiveAvailable()) {
     char *reply = SERIAL_LOCAL.receive();
     lock();
-    sstrcpy(request[active].reply, reply);
-    request[active].state = CB_DONE;
+    sstrcpy(requests[active].reply, reply);
+    requests[active].state = CB_DONE;
     active = -1;
     unlock();
   } else {
     lock();
-    bool timedOut = request[active].timeoutMs == 0 || (long)(millis() - request[active].deadline) >= 0;
+    bool timedOut = requests[active].timeoutMs == 0 || (long)(millis() - requests[active].deadline) >= 0;
     if (timedOut) {
-      request[active].reply[0] = 0;
-      request[active].state = CB_TIMEOUT;
+      requests[active].reply[0] = 0;
+      requests[active].state = CB_TIMEOUT;
       active = -1;
     }
     unlock();
@@ -150,7 +161,7 @@ void CommandBroker::poll() {
 }
 
 uint8_t CommandBroker::makeHandle(uint8_t slot) {
-  return ((request[slot].generation & 0x0F) << 4) | ((slot + 1) & 0x0F);
+  return ((requests[slot].generation & 0x0F) << 4) | ((slot + 1) & 0x0F);
 }
 
 int8_t CommandBroker::handleToSlot(uint8_t handle) {
@@ -162,7 +173,7 @@ int8_t CommandBroker::handleToSlot(uint8_t handle) {
 }
 
 bool CommandBroker::handleValid(uint8_t handle, uint8_t slot) {
-  return (request[slot].generation & 0x0F) == (handle >> 4) && request[slot].state != CB_FREE;
+  return (requests[slot].generation & 0x0F) == (handle >> 4) && requests[slot].state != CB_FREE;
 }
 
 void CommandBroker::lock() {
