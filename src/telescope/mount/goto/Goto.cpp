@@ -15,6 +15,7 @@
 #include "../home/Home.h"
 #include "../park/Park.h"
 #include "../limits/Limits.h"
+#include "../startupAuthority/StartupAuthority.h"
 #include "../status/Status.h"
 
 #if GOTO_FEATURE == ON
@@ -77,7 +78,7 @@ CommandError Goto::request() {
 
 // goto equatorial position (Native or Mount coordinate system)
 CommandError Goto::request(Coordinate coords, PierSideSelect pierSideSelect, bool native) {
-  if (!mount.startupAuthorityTrusted()) {
+  if (!startupAuthority.trusted()) {
     DLF("WRN: Mount, goto rejected because startup authority is not trusted");
     return CE_SLEW_ERR_UNSPECIFIED;
   }
@@ -199,7 +200,7 @@ CommandError Goto::requestSync() {
 
 // sync to equatorial position (Native or Mount coordinate system)
 CommandError Goto::requestSync(Coordinate coords, PierSideSelect pierSideSelect, bool native) {
-  if (!mount.startupAuthorityTrusted()) {
+  if (!startupAuthority.trusted()) {
     DLF("WRN: Mount, sync rejected because startup authority is not trusted");
     return CE_SLEW_ERR_UNSPECIFIED;
   }
@@ -228,6 +229,7 @@ CommandError Goto::requestSync(Coordinate coords, PierSideSelect pierSideSelect,
 
   limits.enabled(true);
   mount.syncFromOnStepToEncoders = true;
+  mountStatus.wake();
 
   VLF("MSG: Mount, sync instrument coordinates updated");
 
@@ -681,6 +683,8 @@ CommandError Goto::startAutoSlew() {
   }
 
   VF("MSG: Mount, goto target coordinates set (a1="); V(radToDeg(a1)); VF(" deg, a2="); V(radToDeg(a2)); VLF(" deg)");
+
+  mountStatus.wake();
 
   e = axis1.autoGoto(radsPerSecondCurrent);
   if (e == CE_NONE) e = axis2.autoGoto(radsPerSecondCurrent*((float)(AXIS2_SLEW_RATE_PERCENT)/100.0F));

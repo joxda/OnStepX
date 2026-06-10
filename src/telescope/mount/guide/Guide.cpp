@@ -17,6 +17,7 @@
 #include "../park/Park.h"
 #include "../home/Home.h"
 #include "../limits/Limits.h"
+#include "../startupAuthority/StartupAuthority.h"
 #include "../status/Status.h"
 
 inline void guideWrapper() { guide.poll(); }
@@ -38,7 +39,7 @@ void Guide::init() {
 }
 
 // start guide at a given direction and rate on Axis1
-CommandError Guide::startAxis1(GuideAction guideAction, GuideRateSelect rateSelect, unsigned long guideTimeLimit) {
+CommandError Guide::startAxis1(GuideAction guideAction, GuideRateSelect rateSelect, unsigned long guideTimeLimit, bool pulseGuide) {
   if (guideAction == GA_NONE) return CE_NONE;
   if (state == GU_HOME_GUIDE || state == GU_HOME_GUIDE_ABORT) return CE_NONE;
 
@@ -57,7 +58,7 @@ CommandError Guide::startAxis1(GuideAction guideAction, GuideRateSelect rateSele
     axis2.setPowerDownOverrideTime(300000UL);
   }
 
-  if (limits.isEnabled() && rate <= 2 && rateSelect != GR_CUSTOM) {
+  if (limits.isEnabled() && rate <= 2 && (pulseGuide || rateSelect != GR_CUSTOM)) {
     backlashEnableControl(false);
     state = GU_PULSE_GUIDE;
     if (guideAction == GA_REVERSE) { VF("MSG: Guide, Axis1 rev @"); rateAxis1 = -rate; } else { VF("MSG: Guide, Axis1 fwd @"); rateAxis1 = rate; }
@@ -96,7 +97,7 @@ void Guide::stopAxis1(GuideAction stopDirection, bool abort) {
 }
 
 // start guide at a given direction and rate on Axis2
-CommandError Guide::startAxis2(GuideAction guideAction, GuideRateSelect rateSelect, unsigned long guideTimeLimit) {
+CommandError Guide::startAxis2(GuideAction guideAction, GuideRateSelect rateSelect, unsigned long guideTimeLimit, bool pulseGuide) {
   if (guideAction == GA_NONE) return CE_NONE;
   if (state == GU_HOME_GUIDE || state == GU_HOME_GUIDE_ABORT) return CE_NONE;
 
@@ -117,7 +118,7 @@ CommandError Guide::startAxis2(GuideAction guideAction, GuideRateSelect rateSele
     axis2.setPowerDownOverrideTime(300000UL);
   }
 
-  if (limits.isEnabled() && rate <= 2 && rateSelect != GR_CUSTOM) {
+  if (limits.isEnabled() && rate <= 2 && (pulseGuide || rateSelect != GR_CUSTOM)) {
     state = GU_PULSE_GUIDE;
     backlashEnableControl(false);
     if (pierSide == PIER_SIDE_WEST) { if (guideAction == GA_FORWARD) guideAction = GA_REVERSE; else guideAction = GA_FORWARD; };
@@ -341,6 +342,14 @@ CommandError Guide::validate(int axis, GuideAction guideAction) {
     if (goTo.state != GS_NONE) { goTo.abort(); return CE_SLEW_IN_MOTION; }
   #endif
 
+  if (guideAction != GA_HOME) {
+    CommandError e = startupAuthority.validateManualMotion();
+    if (e != CE_NONE) {
+      DLF("WRN: Guide, slew rejected because startup authority/limits are not ready");
+      return e;
+    }
+  }
+
   if (axis == 1 || guideAction == GA_SPIRAL) {
     if (!validAxis1(guideAction)) return CE_SLEW_ERR_OUTSIDE_LIMITS;
     if (settings.axis1RateSelect < 3) {
@@ -356,6 +365,8 @@ CommandError Guide::validate(int axis, GuideAction guideAction) {
   }
 
   if (mount.motorFault()) return CE_SLEW_ERR_HARDWARE_FAULT;
+
+  mountStatus.wake();
 
   return CE_NONE;
 }
