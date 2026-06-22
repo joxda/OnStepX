@@ -200,23 +200,41 @@ bool Mount::command(char *reply, char *command, char *parameter, bool *suppressF
             SERIAL_ENCODER.print(":SO#");
           #else
             uint32_t zero = (uint32_t)axis1.motor->encoderZero();
-            V("MSG: Mount, absolute encoder saving AXIS1_ENCODER_OFFSET "); V(uint32_t(zero)); VLF(" to NV/EEPROM");
-            nv().kv().put("AXIS1_ENCODER_ORIGIN", zero);
+            KvPartition::Status axis1Status = nv().kv().put("AXIS1_ENCODER_ORIGIN", zero);
+            if (axis1Status == KvPartition::Status::Ok) {
+              V("MSG: Mount, absolute encoder saved AXIS1_ENCODER_ORIGIN "); V(uint32_t(zero)); VLF(" to NV/EEPROM");
+            } else {
+              DLF("WRN: Mount, absolute encoder failed saving AXIS1_ENCODER_ORIGIN to NV/EEPROM");
+              *commandError = CE_0;
+            }
 
             zero = (uint32_t)axis2.motor->encoderZero();
-            V("MSG: Mount, absolute encoder saving AXIS2_ENCODER_OFFSET "); V(uint32_t(zero)); VLF(" to NV/EEPROM");
-            nv().kv().put("AXIS2_ENCODER_ORIGIN", zero);
+            KvPartition::Status axis2Status = nv().kv().put("AXIS2_ENCODER_ORIGIN", zero);
+            if (axis2Status == KvPartition::Status::Ok) {
+              V("MSG: Mount, absolute encoder saved AXIS2_ENCODER_ORIGIN "); V(uint32_t(zero)); VLF(" to NV/EEPROM");
+            } else {
+              DLF("WRN: Mount, absolute encoder failed saving AXIS2_ENCODER_ORIGIN to NV/EEPROM");
+              *commandError = CE_0;
+            }
           #endif
 
           #ifdef HAL_RESET
-            enable(false);
-            VLF("MSG: Mount, resetting OnStep...");
-            if (nv().device().hasCommit()) { nv().device().commit(); }
-            const uint32_t startMs = millis();
-            const uint32_t timeoutMs = 5000;
-            while (!nv().device().commitDone() && (uint32_t)(millis() - startMs) < timeoutMs) { tasks.yield(1); }
-            tasks.yield(1000);
-            HAL_RESET();
+            if (*commandError == CE_NONE) {
+              enable(false);
+              VLF("MSG: Mount, flushing NV/EEPROM before reset...");
+              bool flushOk = !nv().active().hasCommit() || nv().active().commit() == NvDevice::IoStatus::Ok;
+              const uint32_t startMs = millis();
+              const uint32_t timeoutMs = 5000;
+              while (flushOk && !nv().active().commitDone() && (uint32_t)(millis() - startMs) < timeoutMs) { tasks.yield(1); }
+              if (flushOk && nv().active().commitDone()) {
+                VLF("MSG: Mount, resetting OnStep...");
+                tasks.yield(1000);
+                HAL_RESET();
+              } else {
+                DLF("WRN: Mount, NV/EEPROM flush failed or timed out; reset cancelled");
+                *commandError = CE_0;
+              }
+            }
           #endif
         #endif
 
