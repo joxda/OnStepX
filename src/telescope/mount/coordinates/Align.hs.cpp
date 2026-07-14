@@ -464,13 +464,15 @@ void GeoAlign::observedPlaceToMount(Coordinate *coord) {
       float TFh = model.tfCor*(cosLat*sinAx1*(1.0F/cosAx2));
       float TFd = model.tfCor*(cosLat*cosAx1*sinAx2 - sinLat*cosAx2);
   
+      // cos() linearization for main drive mechanism runout etc.
+      float COSh = cos(a1 + model.hcp)*model.hca*p;
+      float ia2 = a2;
+      if (p < 0.0F) ia2 = sinLat >= 0.0F ? Deg180 - a2 : -Deg180 - a2;
+      float COSd = cos(ia2 + model.dcp)*model.dca*p;
+
       // polar misalignment
       float ax1c = -model.azmCor*cosAx1*(sinAx2/cosAx2) + model.altCor*sinAx1*(sinAx2/cosAx2);
       float ax2c = +model.azmCor*sinAx1                 + model.altCor*cosAx1;
-
-      // cos() linearization for main drive mechanism runout etc.
-      float COSh = cos(a1 + model.hcp)*model.hca*p;
-      float COSd = cos(a2 + model.dcp)*model.dca*p;
 
       // improved guess at instrument coordinate
       a1 = ax1 + (ax1c + PDh + DOh + TFh + COSh);
@@ -479,11 +481,11 @@ void GeoAlign::observedPlaceToMount(Coordinate *coord) {
   }
 
   // finally, apply the index offsets
-  a1 = a1 - model.ax1Cor;
-  a2 = a2 - model.ax2Cor*-p;
+  ax1 = a1 - model.ax1Cor;
+  ax2 = a2 - model.ax2Cor*-p;
 
-  if (mountType == ALTAZM) { coord->z = a1; coord->a = a2; } else
-  if (mountType == ALTALT) { coord->aa1 = a1; coord->aa2 = a2; } else { coord->h = a1; coord->d = a2; }
+  if (mountType == ALTAZM) { coord->z = ax1; coord->a = ax2; } else
+  if (mountType == ALTALT) { coord->aa1 = ax1; coord->aa2 = ax2; } else { coord->h = ax1; coord->d = ax2; }
 }
 
 void GeoAlign::mountToObservedPlace(Coordinate *coord) {
@@ -529,14 +531,15 @@ void GeoAlign::mountToObservedPlace(Coordinate *coord) {
     float TFh = model.tfCor*(cosLat*sinAx1*(1.0F/cosAx2));
     float TFd = model.tfCor*(cosLat*cosAx1*sinAx2 - sinLat*cosAx2);
    
-    // ------------------------------------------------------------
+    // cos() linearization for main drive mechanism runout etc.
+    float COSh = cos(ax1 + model.hcp)*model.hca*p;
+    float iax2 = ax2;
+    if (p < 0.0F) iax2 = sinLat >= 0.0F ? Deg180 - ax2 : -Deg180 - ax2;
+    float COSd = cos(iax2 + model.dcp)*model.dca*p;
+
     // polar misalignment
     float a1 = -model.azmCor*cosAx1*(sinAx2/cosAx2) + model.altCor*sinAx1*(sinAx2/cosAx2);
     float a2 = +model.azmCor*sinAx1                 + model.altCor*cosAx1;
-
-    // cos() linearization for main drive mechanism runout etc.
-    float COSh = cos(a1 + model.hcp)*model.hca*p;
-    float COSd = cos(a2 + model.dcp)*model.dca*p;
 
     ax1 = ax1 - (a1 + PDh + DOh + TFh + COSh);
     ax2 = ax2 - (a2 + DFd + TFd + COSd);
