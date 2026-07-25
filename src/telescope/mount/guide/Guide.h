@@ -90,6 +90,9 @@ class Guide {
     GuideSettings settings = { GR_HALF, GR_20X, GR_20X };
 
   private:
+    // apply the guide duration policy, including the safety limit used while soft limits are disabled
+    void finalizeTimeLimit(unsigned long &guideTimeLimit);
+
     // keep guide rate <= half max
     float limitGuideRate(float rate);
 

@@ -22,6 +22,11 @@
 
 inline void guideWrapper() { guide.poll(); }
 
+void Guide::finalizeTimeLimit(unsigned long &guideTimeLimit) {
+  if (!limits.isEnabled()) guideTimeLimit = GUIDE_TIME_NO_LIMITS*1000UL;
+  if (guideTimeLimit == 0) guideTimeLimit = 0x1FFFFFFF; // unlimited 0 means the maximum period, about 49 days
+}
+
 void Guide::init() {
 
   nvKey = nv().kv().computeKey("GUIDE_SETTINGS");
@@ -42,6 +47,7 @@ void Guide::init() {
 CommandError Guide::startAxis1(GuideAction guideAction, GuideRateSelect rateSelect, unsigned long guideTimeLimit, bool pulseGuide) {
   if (guideAction == GA_NONE) return CE_NONE;
   if (state == GU_HOME_GUIDE || state == GU_HOME_GUIDE_ABORT) return CE_NONE;
+  if (pulseGuide && !limits.isEnabled()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
 
   CommandError e = validate(1, guideAction);
   if (e != CE_NONE) return e;
@@ -49,8 +55,7 @@ CommandError Guide::startAxis1(GuideAction guideAction, GuideRateSelect rateSele
   guideActionAxis1 = guideAction;
   float rate = rateSelectToRate(rateSelect, 1);
 
-  // unlimited 0 means the maximum period, about 49 days
-  if (guideTimeLimit == 0) guideTimeLimit = 0x1FFFFFFF;
+  finalizeTimeLimit(guideTimeLimit);
   guideFinishTimeAxis1 = millis() + guideTimeLimit;
 
   if (rate <= 2) {
@@ -100,6 +105,7 @@ void Guide::stopAxis1(GuideAction stopDirection, bool abort) {
 CommandError Guide::startAxis2(GuideAction guideAction, GuideRateSelect rateSelect, unsigned long guideTimeLimit, bool pulseGuide) {
   if (guideAction == GA_NONE) return CE_NONE;
   if (state == GU_HOME_GUIDE || state == GU_HOME_GUIDE_ABORT) return CE_NONE;
+  if (pulseGuide && !limits.isEnabled()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
 
   CommandError e = validate(2, guideAction); // if successful always sets pierSide
   if (e != CE_NONE) return e;
@@ -109,8 +115,7 @@ CommandError Guide::startAxis2(GuideAction guideAction, GuideRateSelect rateSele
   float fastestRate = rateSelectToRate(GR_MAX, 2)*((float)(AXIS2_SLEW_RATE_PERCENT)/100.0F);
   if (rate > fastestRate) rate = fastestRate;
 
-  // unlimited 0 means the maximum period, about 49 days
-  if (guideTimeLimit == 0) guideTimeLimit = 0x1FFFFFFF;
+  finalizeTimeLimit(guideTimeLimit);
   guideFinishTimeAxis2 = millis() + guideTimeLimit;
 
   if (rate <= 2) {
@@ -161,6 +166,7 @@ void Guide::stopAxis2(GuideAction stopDirection, bool abort) {
 CommandError Guide::startSpiral(GuideRateSelect rateSelect, unsigned long guideTimeLimit) {
   if (state == GU_SPIRAL_GUIDE) { stop(); return CE_NONE; }
   if (guideActionAxis1 != GA_NONE || guideActionAxis2 != GA_NONE) return CE_SLEW_IN_MOTION;
+  if (!limits.isEnabled()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
   CommandError e = validate(0, GA_SPIRAL); if (e != CE_NONE) return e;
 
   backlashEnableControl(true);
@@ -171,8 +177,7 @@ CommandError Guide::startSpiral(GuideRateSelect rateSelect, unsigned long guideT
 
   VF("MSG: guideSpiralStart(), using guide rates to "); V(rateSelectToRate(spiralGuideRateSelect)); VL("X");
 
-  // unlimited 0 means the maximum period, about 49 days
-  if (guideTimeLimit == 0) guideTimeLimit = 0x1FFFFFFF;
+  finalizeTimeLimit(guideTimeLimit);
   spiralStartTime = millis();
   guideFinishTimeAxis1 = spiralStartTime + guideTimeLimit;
   guideFinishTimeAxis2 = guideFinishTimeAxis1;

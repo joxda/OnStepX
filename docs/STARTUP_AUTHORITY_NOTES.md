@@ -39,6 +39,40 @@ Limit enforcement is related but separate too:
 - date/time readiness answers whether sky-referenced operation is ready
 - limit enforcement can become active as soon as both are available
 
+## Motion safety whenever soft limits are disabled
+
+This policy is not limited to mounts with absolute encoders or coordinate
+memory. It applies whenever soft limit enforcement is disabled.
+
+Typical cases include:
+
+- initial setup of a basic mount before reset/home or the first accepted goto
+  enables normal limit enforcement
+- first-time absolute-encoder-origin or coordinate-memory commissioning
+- startup states where coordinate trust or date/time is not ready
+
+While soft limits are disabled:
+
+- ordinary directional guiding is available only when startup-authority policy
+  also permits manual recovery motion
+- `GUIDE_TIME_NO_LIMITS` replaces `GUIDE_TIME_LIMIT` for each permitted
+  directional guide command
+- `GUIDE_TIME_NO_LIMITS` defaults to 5 seconds, after which another guide
+  command is required to continue moving
+- setting `GUIDE_TIME_NO_LIMITS` to `0` allows unlimited directional guide time
+- pulse guides and spiral guides are rejected
+- physical limit switches, motor faults, stall detection, and other
+  non-coordinate protections remain active
+- switch-based home remains available when configured because its sensors
+  provide an authoritative recovery path
+
+Goto, sync, reset/home, park, and unpark continue to follow their own startup
+trust, date/time, and state checks. On a basic mount that already has session
+trust, the first accepted goto or authoritative reset/home can transition the
+mount into normal limit-enforced operation. During untrusted commissioning,
+coordinate-based automatic operations remain blocked until an authoritative
+origin or sensed home establishes trust.
+
 ## What currently establishes trust
 
 Trust can currently come from either immediate startup authority sources or
@@ -261,6 +295,21 @@ Blocked while untrusted:
 This distinction avoids treating an NV failure or an untrusted coordinate-memory
 record as if it were the same thing as a clean first boot.  Fresh coordinate
 memory gets a one-time commissioning path; later failures stay conservative.
+
+### First-time origin commissioning
+
+First-time coordinate-memory and absolute-encoder-origin commissioning uses the
+general [soft-limits-disabled motion policy](#motion-safety-whenever-soft-limits-are-disabled).
+Because the coordinate basis is not yet trusted, coordinate-based automatic
+operations are blocked and only the permitted recovery paths are available.
+
+After the mount has been directionally guided to the known origin, stop all
+motion and use `:SEO#` to establish the absolute-encoder origin or initialize
+mount coordinate memory. Absolute-encoder origins are consumed during startup,
+so restart the controller after saving the origin if the platform does not
+reset automatically. Normal coordinate-based motion remains unavailable until
+startup authority is trusted; soft limits become active when trust and
+date/time are both ready.
 
 ## Workflow 3: Boot Untrusted, Then Establish Trust With Auto-Home
 
