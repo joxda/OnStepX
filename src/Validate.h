@@ -438,6 +438,10 @@
   #error "Configuration (Config.h): Setting GUIDE_TIME_LIMIT unknown, use the value 0 to disable or 1 to 120 (seconds.)"
 #endif
 
+#if GUIDE_TIME_NO_LIMITS < 0 || GUIDE_TIME_NO_LIMITS > 120
+  #error "Configuration (Config.h): Setting GUIDE_TIME_NO_LIMITS unknown, use the value 0 to disable or 1 to 120 (seconds.)"
+#endif
+
 #if GUIDE_DISABLE_BACKLASH != ON && GUIDE_DISABLE_BACKLASH != OFF
   #error "Configuration (Config.h): Setting GUIDE_DISABLE_BACKLASH unknown, use OFF or ON."
 #endif

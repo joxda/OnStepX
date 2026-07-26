@@ -457,6 +457,8 @@ Only after that should you move on to longer slews and unattended use.
 If your servo setup uses absolute encoders:
 - the encoder origin must be established correctly
 - startup trust behavior depends on that origin being believable
+- follow the [soft-limits-disabled motion safety](STARTUP_AUTHORITY_NOTES.md#motion-safety-whenever-soft-limits-are-disabled)
+  procedure before using `:SEO#` to save the origin
 
 If you are not using absolute encoders:
 - skip this part for initial bring-up

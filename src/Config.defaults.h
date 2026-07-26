@@ -809,6 +809,9 @@
 #ifndef GUIDE_TIME_LIMIT
 #define GUIDE_TIME_LIMIT              0                           // in seconds, 0 to disable
 #endif
+#ifndef GUIDE_TIME_NO_LIMITS
+#define GUIDE_TIME_NO_LIMITS          5                           // max guide time when soft limits are disabled, in seconds, 0 to disable
+#endif
 #ifndef GUIDE_DISABLE_BACKLASH
 #define GUIDE_DISABLE_BACKLASH        OFF                         // disables backlash while pulse-guiding
 #endif

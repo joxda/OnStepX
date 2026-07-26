@@ -92,6 +92,13 @@ and limit logic as well.
 
 In other words, goto is not treated as a way to escape unknown state.
 
+On a basic mount, soft limits may still be disabled before reset/home or the
+first accepted goto. The
+[soft-limits-disabled motion policy](STARTUP_AUTHORITY_NOTES.md#motion-safety-whenever-soft-limits-are-disabled)
+applies to guiding during that interval. Once a goto passes the normal trust,
+date/time, and target checks, limit enforcement is enabled before the slew
+starts.
+
 ## Workflow 2: Converting The Target
 
 ## The incoming target may start life in
