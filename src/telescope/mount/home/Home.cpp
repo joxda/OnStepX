@@ -21,9 +21,9 @@ void Home::init() {
   if (!nv().kv().getOrInit(nvKey, settings)) { DLF("WRN: Nv, init failed for HOME_SETTINGS"); }
 
   settings.automaticAtBoot = constrain(settings.automaticAtBoot, false, true);
-  settings.axis1.senseOffset = constrain(settings.axis1.senseOffset, degToArcsecF(-180), degToArcsecF(180)); 
+  settings.axis1.senseOffset = constrain(settings.axis1.senseOffset, degToArcsecL(-180L), degToArcsecL(180L)); 
   settings.axis1.senseReverse = constrain(settings.axis1.senseReverse, false, true);
-  settings.axis2.senseOffset = constrain(settings.axis2.senseOffset, degToArcsecF(-180), degToArcsecF(180));
+  settings.axis2.senseOffset = constrain(settings.axis2.senseOffset, degToArcsecL(-180L), degToArcsecL(180L));
   settings.axis2.senseReverse = constrain(settings.axis2.senseReverse, false, true);
 
   #ifndef AXIS1_HOME_DEFAULT
