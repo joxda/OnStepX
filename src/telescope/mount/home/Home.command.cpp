@@ -52,7 +52,7 @@ bool Home::command(char *reply, char *command, char *parameter, bool *suppressFr
         setReversal();
       } else {
         long l = atol(&parameter[2]);
-        if (l >= -degToArcsecL(180L) || l <= degToArcsecL(180L)) {
+        if (l >= -degToArcsecL(180L) && l <= degToArcsecL(180L)) {
           settings.axis1.senseOffset = l;
         } else *commandError = CE_PARAM_RANGE;
       }
@@ -69,7 +69,7 @@ bool Home::command(char *reply, char *command, char *parameter, bool *suppressFr
         setReversal();
       } else {
         long l = atol(&parameter[2]);
-        if (l >= -degToArcsecL(180L) || l <= degToArcsecL(180L)) {
+        if (l >= -degToArcsecL(180L) && l <= degToArcsecL(180L)) {
           settings.axis2.senseOffset = l;
         } else *commandError = CE_PARAM_RANGE;
       }
