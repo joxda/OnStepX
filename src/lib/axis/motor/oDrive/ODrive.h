@@ -78,7 +78,7 @@ typedef struct ODriveDriverSettings {
 class ODriveMotor : public Motor {
   public:
     // constructor
-    ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverSettings *Settings, float radsPerCount, bool useFastHardwareTimers = true);
+    ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverSettings *Settings, float countsPerRad, bool useFastHardwareTimers = true);
 
     // sets up the odrive motor
     bool init();
@@ -88,7 +88,7 @@ class ODriveMotor : public Motor {
 
     // returns the specified axis parameter
     AxisParameter* getParameter(uint8_t number) {
-      if (number == Motor::getParameterCount() + 1) return &radsPerCount; else
+      if (number == Motor::getParameterCount() + 1) return &countsPerRad; else
       if (number >= 1 && number <= Motor::getParameterCount()) return Motor::getParameter(number); else
       return &invalid;
     }
@@ -170,11 +170,11 @@ class ODriveMotor : public Motor {
 
     DriverStatus status = { false, {false, false}, {false, false}, false, false, false, false };
 
-    // runtime adjustable settings
-    AxisParameter radsPerCount = {NAN, NAN, NAN, degToRadF(300.0), degToRadF(360000.0), AXP_FLOAT, AXPN_RADS_PER_COUNT};
+    // runtime adjustable settings (counts per radian; bounds correspond to counts per degree)
+    AxisParameter countsPerRad = {NAN, NAN, NAN, 300.0*RAD_DEG_RATIO_F, 360000.0*RAD_DEG_RATIO_F, AXP_FLOAT, AXPN_COUNTS_PER_RAD};
 
     const int numParameters = 1;
-    AxisParameter* parameter[2] = {&invalid, &radsPerCount};
+    AxisParameter* parameter[2] = {&invalid, &countsPerRad};
 };
 
 #endif
