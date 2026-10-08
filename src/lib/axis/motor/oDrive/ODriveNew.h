@@ -115,6 +115,8 @@ class ODriveMotor : public Motor {
   private:
     void stopSyntheticMotion();
     void resetToTrackingBaseline();
+    void requestIdle();
+    void faultStop();
 
     float feedForwardVelocity = 0.0F;
     unsigned long lastSetPositionTime = 0;
@@ -125,6 +127,7 @@ class ODriveMotor : public Motor {
     int  stepSize = 1;                  // step size
 
     unsigned long lastPeriod = 0;       // last timer period (in sub-micros)
+    float currentFrequency = 0.0F;
     float maxFrequency = HAL_FRACTIONAL_SEC; // fastest timer rate
 
     volatile int absStep = 0;           // absolute step size (unsigned)
@@ -136,9 +139,10 @@ class ODriveMotor : public Motor {
     bool enablePending = false;
     bool enableTarget = false;
     uint32_t enableDeadlineMs = 0;
+    uint32_t idleHeartbeatMs = 0;
     bool isSlewing = false;
 
-    DriverStatus status = { false, {false, false}, {false, false}, false, false, false, false };
+    DriverStatus status = { true, {false, false}, {false, false}, false, false, false, false };
 
     // runtime adjustable settings
     AxisParameter countsPerRad = {NAN, NAN, NAN, 300.0*RAD_DEG_RATIO_F, 360000.0*RAD_DEG_RATIO_F, AXP_FLOAT, AXPN_COUNTS_PER_RAD};

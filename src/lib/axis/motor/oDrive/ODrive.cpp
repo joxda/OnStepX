@@ -23,7 +23,7 @@ IRAM_ATTR void moveODriveMotorAxis2() { odriveMotorInstance[1]->move(); }
 #endif
 
 // constructor
-ODriveMotor::ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverSettings *Settings, float radsPerCount, bool useFastHardwareTimers)
+ODriveMotor::ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverSettings *Settings, float countsPerRad, bool useFastHardwareTimers)
                          :Motor(axisNumber, reverse) {
   if (axisNumber < 1 || axisNumber > 2) return;
 
@@ -50,7 +50,7 @@ ODriveMotor::ODriveMotor(uint8_t axisNumber, int8_t reverse, const ODriveDriverS
   }
 
   // set parameter default values during object creation
-  radsPerCount.valueDefualt = radsPerCount;
+  this->countsPerRad.valueDefault = countsPerRad;
 
   // attach the function pointers to the callbacks
   odriveMotorInstance[this->axisNumber - 1] = this;
@@ -139,8 +139,8 @@ void ODriveMotor::setInstrumentCoordinateSteps(long value) {
     noInterrupts();
     long index = value - motorSteps;
     interrupts();
-    float indexDeg = index/radsPerCount.value;
-    if (indexDeg >= -degToRadF(ODRIVE_SYNC_LIMIT/3600.0F) && indexDeg <= degToRadF(ODRIVE_SYNC_LIMIT/3600.0F))
+    float indexRad = index/countsPerRad.value;
+    if (indexRad >= -degToRadF(ODRIVE_SYNC_LIMIT/3600.0F) && indexRad <= degToRadF(ODRIVE_SYNC_LIMIT/3600.0F))
   #endif
   Motor::setInstrumentCoordinateSteps(value);
 }
@@ -157,11 +157,11 @@ void ODriveMotor::resetPositionSteps(long value) {
   // if (axisNumber - 1 == 0) oPosition = o_position0;
   // if (axisNumber - 1 == 1) oPosition = o_position1;
 
-  // get ODrive position in fractionial Turns
+  // Convert ODrive position in fractional turns to internal counts.
   #if ODRIVE_COMM_MODE == OD_UART
-    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*radsPerCount.value; // axis1/2 are in steps per radian
+    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*countsPerRad.value;
   #elif ODRIVE_COMM_MODE == OD_CAN
-    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*radsPerCount.value; // axis1/2 are in steps per radian
+    oPosition = _oDriveDriver->GetPosition(axisNumber - 1)*TWO_PI*countsPerRad.value;
   #endif
 
   noInterrupts();
@@ -253,9 +253,9 @@ void ODriveMotor::poll() {
   #endif
   interrupts();
   #if ODRIVE_COMM_MODE == OD_UART
-    setPosition(axisNumber -1, target/(TWO_PI*radsPerCount.value));
+    setPosition(axisNumber -1, target/(TWO_PI*countsPerRad.value));
   #elif ODRIVE_COMM_MODE == OD_CAN
-    _oDriveDriver->SetPosition(axisNumber -1, target/(TWO_PI*radsPerCount.value));
+    _oDriveDriver->SetPosition(axisNumber -1, target/(TWO_PI*countsPerRad.value));
   #endif
 }
 
