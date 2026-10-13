@@ -41,11 +41,19 @@ of both mount axes. Establish it in one of the following ways.
 For a basic mount under `SA_AUTO`, session trust is already granted at boot **on the
 assumption** that the user will establish the initial position reference through home or sync:
 
-- **Home:** With clutches, physically place the mount home before powering on.
-  Without clutches, power on and guide to physical home, then reset home with
-  `:hF#` to begin normal operation.
+- **Home:** With clutches, physically place the mount at home before powering on.
+  OnStepX assumes the mount is at home at startup, so goto can be used directly
+  once the usual readiness checks pass. If you use guide controls to reach
+  physical home after powering on, reset home with `:hF#` before goto. This also
+  provides the startup workflow for a mount without clutches.
 - **Sync:** Point at a known sky position, supply its coordinates, and sync.
   An accepted sync establishes or corrects the coordinate reference.
+
+Software limits are disabled during this startup phase so directional guide commands time
+out after 5 seconds by default; see [Motion safety](#motion-safety-whenever-soft-limits-are-disabled).
+This somewhat aggressive guard helps protect the mount and what's riding on it from unbounded guides due
+to broken communication that may occasionally occur.  To keep moving continiously, briefly release and press
+the direction button again every few seconds.
 
 Sync can establish the position reference when the startup authority policy
 permits it. The firmware's trust flag must already be set for ordinary sync to
@@ -111,12 +119,19 @@ trust checks. Hardware protections remain active.
 
 ## First-time origin setup
 
-Where absolute encoders or coordinate memory require first-time origin setup:
+Coordinate memory or absolute encoders **require** a first-time origin setup:
 
 1. Physically establish the known home/origin, using directional guiding as allowed
    by [Motion safety](#motion-safety-whenever-soft-limits-are-disabled).
-2. Stop all motion and tracking, then use `:SEO#` to initialize the applicable
-   origin (usually using the SWS or Website control via the `DISPLAY_COORDINATE_ORIGIN` option).
+2. Stop all motion and tracking, then set the applicable origin using the
+   appropriate control below.
+   - Enabling `DISPLAY_COORDINATE_ORIGIN` in the SmartWebServer or Website adds a
+     Set Origin control to the Mount page for OnStepX absolute encoder servos or
+     mount coordinate memory. This sends the `:SEO#` command to OnStepX.
+   - For absolute encoders hosted by the SmartWebServer, use the Set
+     Origin control on the Encoders page. This uses OnStepX's current axis
+     coordinates as the reference, so first ensure they match the physical
+     position (for example, reset home with `:hF#` when physically at home).
 3. Complete any required restart, then follow normal startup.
 
 Origin setup declares a known physical reference. It is not a general fault-clear
@@ -124,11 +139,12 @@ operation. Restart requirements are listed in the technical notes below.
 
 ## Motion safety whenever soft limits are disabled
 
-- Directional guiding remains available on basic mounts while untrusted.
+- Directional guiding remains available on basic mounts to facilitate moving
+  to the home position as part of the usual startup procedure.
 - For coordinate memory, initial guiding requires both saved-position records to
   be missing. Untrusted, unreadable, or incompatible records do not reopen that
   permission.
-- With absolute position sources and coordinate memory OFF, guiding is allowed
+- With absolute encoders and coordinate memory OFF, guiding is allowed
   before trust has first been established in the current session, but blocked
   after established trust is lost.
 - `GUIDE_TIME_NO_LIMITS` replaces the normal guide timeout. The default is 5 seconds
