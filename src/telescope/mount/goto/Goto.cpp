@@ -62,9 +62,8 @@ void Goto::init() {
   axis1.setFrequencyMax(((1000000.0F/usPerStepBase)/axis1.getStepsPerMeasure())*2.0F);
   axis2.setFrequencyMax(((1000000.0F/usPerStepBase)/axis2.getStepsPerMeasure())*2.0F);
 
-  absoluteEncodersPresent = axis1.motor->hasAbsoluteEncoder() || axis2.motor->hasAbsoluteEncoder();
   if (AXIS1_HOME_TOLERANCE != 0.0F || AXIS2_HOME_TOLERANCE != 0.0F ||
-      AXIS1_TARGET_TOLERANCE != 0.0F || AXIS2_TARGET_TOLERANCE != 0.0F || absoluteEncodersPresent) encodersPresent = true;
+      AXIS1_TARGET_TOLERANCE != 0.0F || AXIS2_TARGET_TOLERANCE != 0.0F || mount.hasAbsoluteEncoders()) encodersPresent = true;
 
   updateAccelerationRates();
 }
@@ -211,12 +210,15 @@ CommandError Goto::requestSync(Coordinate coords, PierSideSelect pierSideSelect,
     return CE_SLEW_ERR_UNSPECIFIED;
   }
   
+  CommandError e = limits.validateSyncPole(coords.d);
+  if (e != CE_NONE) return e;
+
   if (native) {
     coords.pierSide = PIER_SIDE_NONE;
     transform.nativeToMount(&coords);
   }
 
-  CommandError e = setTarget(&coords, pierSideSelect, false);
+  e = setTarget(&coords, pierSideSelect, false);
   if (e != CE_NONE) return e;
   
   if (mount.isHome()) mount.tracking(true);
@@ -399,7 +401,8 @@ CommandError Goto::validate() {
 CommandError Goto::alignAddStar(bool sync) {
   if (alignState.currentStar > alignState.lastStar) return CE_PARAM_RANGE;
 
-  CommandError e = CE_NONE;
+  CommandError e = limits.validateSyncPole(alignState.currentStar == 1 || sync ? gotoTarget.d : lastAlignTarget.d);
+  if (e != CE_NONE) return e;
 
   // first star, get ready for a new pointing model, init/sync then call gta.addStar 
   if (alignState.currentStar == 1) {
@@ -594,7 +597,7 @@ void Goto::poll() {
   }
 
   // adjust rates near the horizon to help avoid exceeding the minimum altitude limit
-  if (transform.isEquatorial() && MOUNT_HORIZON_AVOIDANCE == ON) {
+  if (limits.hasSoftwareLimits() && transform.isEquatorial() && MOUNT_HORIZON_AVOIDANCE == ON) {
     if (site.locationEx.latitude.absval > degToRad(10.0)) {
       static float last_a2 = 0;
       Coordinate coords = mount.getMountPosition(CR_MOUNT_ALT);

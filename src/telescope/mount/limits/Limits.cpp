@@ -21,6 +21,12 @@ void Limits::init() {
   nvKey = nv().kv().computeKey("LIMIT_SETTINGS");
   if (!nv().kv().getOrInit(nvKey, settings)) { DLF("WRN: Nv, init failed for LIMIT_SETTINGS"); }
 
+  syncNvKey = nv().kv().computeKey("SYNC_LIMIT_SETTINGS");
+  if (!nv().kv().getOrInit(syncNvKey, syncSettings)) { DLF("WRN: Nv, init failed for SYNC_LIMIT_SETTINGS"); }
+  if (!(syncSettings.pole == OFF || (syncSettings.pole >= 60.0F && syncSettings.pole <= 90.0F))) syncSettings.pole = SYNC_POLE_LIMIT;
+  if (!(syncSettings.axis1 == OFF || (syncSettings.axis1 >= 0.0F && syncSettings.axis1 <= 30.0F))) syncSettings.axis1 = AXIS1_LIMIT_SYNC;
+  if (!(syncSettings.axis2 == OFF || (syncSettings.axis2 >= 0.0F && syncSettings.axis2 <= 30.0F))) syncSettings.axis2 = AXIS2_LIMIT_SYNC;
+
   settings.altitude.min = constrain(settings.altitude.min, degToRadF(-30), degToRadF(30));
   settings.altitude.max = constrain(settings.altitude.max, degToRadF(60), degToRadF(90));
   settings.pastMeridianE = constrain(settings.pastMeridianE, degToRadF(-360), degToRadF(360));
@@ -38,9 +44,19 @@ CommandError Limits::validateTarget(Coordinate *coords, bool isGoto) {
   return validateTarget(coords, &eastReachable, &westReachable, &eastCorrection, &westCorrection, isGoto);
 }
 
+CommandError Limits::validateSyncPole(double declination) {
+  const float poleLimit = getSyncPoleLimit();
+  if (poleLimit < 90.0F && transform.isEquatorial() &&
+      fabs(declination) > degToRad(poleLimit)) {
+    DLF("WRN: Mount, sync/align rejected near celestial pole");
+    return CE_SLEW_ERR_OUTSIDE_LIMITS;
+  }
+  return CE_NONE;
+}
+
 CommandError Limits::validateInstrumentCoordinate(uint8_t axisNumber, double value, bool bypass) {
   if (bypass) return CE_NONE;
-  if (!limitsEnabled) return CE_NONE;
+  if (!limitsEnabled || !hasSoftwareLimits()) return CE_NONE;
 
   #if AXIS1_WRAP == ON
     return CE_NONE;
@@ -55,21 +71,21 @@ CommandError Limits::validateInstrumentCoordinate(uint8_t axisNumber, double val
 
     switch (axisNumber) {
       case 1:
-        if (AXIS1_LIMIT_SYNC == OFF) return CE_NONE;
+        if (syncSettings.axis1 == OFF) return CE_NONE;
         proposedIndexSteps = lround(value*axis1.getStepsPerMeasure()) - (axis1.getInstrumentCoordinateSteps() - axis1.getIndexPositionSteps());
         nominalIndexSteps = mount.getNominalIndexPositionSteps(1);
         delta = fabs((double)(proposedIndexSteps - nominalIndexSteps))/axis1.getStepsPerMeasure();
-        if (delta > degToRadF((float)AXIS1_LIMIT_SYNC)) {
+        if (delta > degToRadF(syncSettings.axis1)) {
           VLF("MSG: Mount, sync axis1 rejected (exceeds threshold)");
           return CE_SLEW_ERR_OUTSIDE_LIMITS;
         }
       break;
       case 2:
-        if (AXIS2_LIMIT_SYNC == OFF) return CE_NONE;
+        if (syncSettings.axis2 == OFF) return CE_NONE;
         proposedIndexSteps = lround(value*axis2.getStepsPerMeasure()) - (axis2.getInstrumentCoordinateSteps() - axis2.getIndexPositionSteps());
         nominalIndexSteps = mount.getNominalIndexPositionSteps(2);
         delta = fabs((double)(proposedIndexSteps - nominalIndexSteps))/axis2.getStepsPerMeasure();
-        if (delta > degToRadF((float)AXIS2_LIMIT_SYNC)) {
+        if (delta > degToRadF(syncSettings.axis2)) {
           VLF("MSG: Mount, sync axis2 rejected (exceeds threshold)");
           return CE_SLEW_ERR_OUTSIDE_LIMITS;
         }
@@ -102,6 +118,14 @@ CommandError Limits::setInstrumentCoordinate(uint8_t axisNumber, double value, b
 
 // target coordinate check ahead of sync, goto, etc.
 CommandError Limits::validateTarget(Coordinate *coords, bool *eastReachable, bool *westReachable, double *eastCorrection, double *westCorrection, bool isGoto) {
+  if (!hasSoftwareLimits()) {
+    *eastReachable = true;
+    *westReachable = true;
+    *eastCorrection = 0.0;
+    *westCorrection = 0.0;
+    return CE_NONE;
+  }
+
   if (flt(coords->a, settings.altitude.min)) return CE_SLEW_ERR_BELOW_HORIZON;
   if (fgt(coords->a, settings.altitude.max)) return CE_SLEW_ERR_ABOVE_OVERHEAD;
 
@@ -315,13 +339,13 @@ void Limits::poll() {
   Coordinate current = mount.getMountPosition(CR_MOUNT_ALT);
 
   #if TRACK_AUTOSTART == OFF && TRACK_WITHOUT_LIMITS == OFF
-    if (!limitsEnabled && mount.isTracking()) {
+    if (!isMotionAllowed() && mount.isTracking()) {
       VLF("MSG: Mount, tracking without limits disallowed");
       mount.tracking(false);
     }
   #endif
 
-  if (limitsEnabled && guide.state != GU_HOME_GUIDE && guide.state != GU_HOME_GUIDE_ABORT) {
+  if (limitsEnabled && hasSoftwareLimits() && guide.state != GU_HOME_GUIDE && guide.state != GU_HOME_GUIDE_ABORT) {
     // overhead and horizon limits
     if (current.a < settings.altitude.min && limitsDisablePeriodDs == 0) error.altitude.min = true; else error.altitude.min = false;
 

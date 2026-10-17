@@ -84,7 +84,7 @@ bool StartupAuthority::required() const {
   #if MOUNT_COORDS_MEMORY == ON
     return true;
   #else
-    return goTo.absoluteEncodersPresent || axis1.motor->hasAbsoluteEncoder() || axis2.motor->hasAbsoluteEncoder();
+    return mount.hasAbsoluteEncoders();
   #endif
 }
 
@@ -104,7 +104,7 @@ CommandError StartupAuthority::validateManualMotion() const {
   }
 
   if (!site.isDateTimeReady()) return CE_SLEW_ERR_IN_STANDBY;
-  if (!limits.isEnabled()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
+  if (!limits.isMotionAllowed()) return CE_SLEW_ERR_OUTSIDE_LIMITS;
 
   return CE_NONE;
 }
