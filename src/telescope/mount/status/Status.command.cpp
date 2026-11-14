@@ -21,8 +21,6 @@
 #include "../startupAuthority/StartupAuthority.h"
 
 bool Status::command(char *reply, char *command, char *parameter, bool *suppressFrame, bool *numericReply, CommandError *commandError) {
-  UNUSED(suppressFrame);
-
   if (command[0] == 'G') {
     // :Gm#       Gets the meridian pier-side
     //            Returns: E#, W#, N# (none/parked)
@@ -163,13 +161,26 @@ bool Status::command(char *reply, char *command, char *parameter, bool *suppress
       if (transform.mountType == GEM)          reply[i++] = 'G'; else
       if (transform.mountType == FORK)         reply[i++] = 'P'; else
       if (transform.mountType == ALTAZM)       reply[i++] = 'A'; else
-      if (transform.mountType == ALTALT)       reply[i++] = 'L';
+      if (transform.mountType == ALTALT)       reply[i++] = 'A';
       if (mount.isTracking())                  reply[i++] = 'T'; else reply[i++] = 'N';
       if (park.state == PS_PARKED)             reply[i++] = 'P'; else
       if (mount.isHome())                      reply[i++] = 'H'; else
       if (goTo.alignDone())                    reply[i++] = '1'; else reply[i++] = '0';
       reply[i++] = 0;
       *numericReply = false;
+    } else
+
+    // :Gw#       Get working mode (also queried by raw LX200 ACK, 0x06)
+    //            Returns: c ('P' for Equatorial modes or 'A' for ALT/AZM modes)
+    if (command[1] == 'w' && parameter[0] == 0)  {
+      int i = 0;
+      if (transform.mountType == GEM)          reply[i++] = 'P'; else
+      if (transform.mountType == FORK)         reply[i++] = 'P'; else
+      if (transform.mountType == ALTAZM)       reply[i++] = 'A'; else
+      if (transform.mountType == ALTALT)       reply[i++] = 'A';
+      reply[i++] = 0;
+      *numericReply = false;
+      *suppressFrame = true;
     } else return false;
 
   } else
